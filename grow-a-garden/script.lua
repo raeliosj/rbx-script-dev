@@ -4,11 +4,26 @@ local EzUI = loadstring(game:HttpGet('https://raw.githubusercontent.com/alfin-ef
 -- Import local modules
 local Core = require('../module/core.lua')
 local PlayerUtils = require('../module/player.lua')
+
+-- Import Farm
 local FarmUtils = require('module/farm.lua')
+local FarmUI = require('ui/farm.lua')
+
+-- Import Pet
 local PetUtils = require('module/pet.lua')
 local PetUI = require('ui/pet.lua')
-local ShopModule = require('module/shop.lua')
+
+-- Import Shop
+local ShopUtils = require('module/shop.lua')
 local ShopUI = require('ui/shop.lua')
+
+--- Import Quest
+local QuestUtils = require('module/quest.lua')
+local QuestUI = require('ui/quest.lua')
+
+-- Import Event
+local EventUtils = require('event/seed_stages/module.lua')
+local EventUI = require('event/seed_stages/ui.lua')
 
 -- Initialize window
 local window = EzUI.CreateWindow({
@@ -37,8 +52,17 @@ window:SetCloseCallback(function()
     PetUtils:RemoveAutoHatchConnection()
 
     -- Stop all Shop automation
-    ShopModule:StopAllAutomation()
-	
+    ShopUtils:StopAllAutomation()
+
+    -- Stop all queued tasks
+    PlayerUtils:ClearQueue()
+
+    -- Stop all Farm automation
+    FarmUtils:StopAllAutomation()
+
+    -- Stop all Event automation
+    EventUtils:StopAutoSubmitEventPlants()
+
 	print("Cleanup completed!")
 end)
 
@@ -47,14 +71,35 @@ wait(1) -- Ensure config is loaded
 
 -- Initialize modules with dependencies
 PlayerUtils:Init(Core)
-FarmUtils:Init(Core, PlayerUtils)
+
+-- Farm
+FarmUtils:Init(Core, PlayerUtils, window)
+FarmUI:Init(Core, PlayerUtils, FarmUtils, window)
+FarmUI:CreateFarmTab()
+print("Farm initialized")
+
+-- Pet
 PetUtils:Init(Core, PlayerUtils, FarmUtils, EzUI.NewConfig("PetTeamConfig"), window)
 PetUI:Init(window, PetUtils, FarmUtils)
+PetUI:CreatePetTab()
+print("Pet initialized")
 
 -- Shop
-ShopModule:Init(Core, PlayerUtils, window)
-ShopUI:Init(window, ShopModule)
+ShopUtils:Init(Core, PlayerUtils, window)
+ShopUI:Init(window, ShopUtils)
+ShopUI:CreateShopTab()
+print("Shop initialized")
+
+
+-- Event
+EventUtils:Init(window, FarmUtils, PlayerUtils, Core)
+EventUI:Init(window, EventUtils)
+print("Event initialized")
+
+-- Quest
+QuestUtils:Init(window, FarmUtils, PlayerUtils, Core)
+QuestUI:Init(window, QuestUtils, EventUI)
+QuestUI:CreateQuestTab()
 
 -- Create UI
-PetUI:CreatePetTab()
-ShopUI:CreateShopTab()
+print("All modules initialized and UI created.")

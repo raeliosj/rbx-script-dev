@@ -9,6 +9,7 @@ local AutoHatchConnection
 
 -- Prevent collision flags
 local isHatchingInProgress = false
+local isEggPlacementInProgress = false
 
 function PetUtils:Init(gameServices, playerUtils, farmUtils, petTeamConfig, window)
     GameServices = gameServices
@@ -17,12 +18,10 @@ function PetUtils:Init(gameServices, playerUtils, farmUtils, petTeamConfig, wind
     PetTeamConfig = petTeamConfig
     Window = window
     
-    -- Auto Hatch Egg When Ready
     local EggReadyToHatchRemote = gameServices.GameEvents.EggReadyToHatch_RE
-    local iSEnabledAutoHatch = false
-
+    
     AutoHatchConnection = EggReadyToHatchRemote.OnClientEvent:Connect(function(petName, eggUUID)
-        iSEnabledAutoHatch = Window:GetConfigValue("AutoHatchEggs") or false
+        local iSEnabledAutoHatch = Window:GetConfigValue("AutoHatchEggs") or false
         
         if not iSEnabledAutoHatch then
             return
@@ -30,12 +29,21 @@ function PetUtils:Init(gameServices, playerUtils, farmUtils, petTeamConfig, wind
         -- Add to queue instead of direct execution
         self:QueueHatchRequest()
     end)
-    
-    -- Init Queue
+
+    local iSEnabledAutoHatch = Window:GetConfigValue("AutoHatchEggs") or false
     if not iSEnabledAutoHatch then
         return
     end
-    self:QueueHatchRequest()
+    -- Setup Auto Hatch connection (non-blocking)
+    task.spawn(function()
+        print("🥚 Auto hatch enabled, queuing initial hatch request")
+        
+        -- Init Queue (check after connection is established)
+        wait(0.5) -- Small delay to ensure config is loaded
+        self:QueueHatchRequest()
+    end)
+    
+    print("✅ PetUtils initialized (non-blocking)")
 end
 
 -- =========== Pets ==========
@@ -371,43 +379,86 @@ function PetUtils:SellPet()
         wait(2)
     end
 
+    PlayerUtils:UnequipTool()
+
     if boostBeforeSelling then
         wait(2)
-        PlayerUtils:UnequipTool()
         self:BoostAllActivePets()
     end
+
+    local sellingCount = 0
+    local soldCount = 0
 
     for _, Tool in next, PlayerUtils:GetAllTools() do
         local toolType = Tool:GetAttribute("b")
         local petUUID = Tool:GetAttribute("PET_UUID")
         local isFavorite = Tool:GetAttribute("d") or false
 
-        if not isFavorite and toolType == "l" and petUUID then
-            local petData = self:GetPetData(petUUID)
-            if petData then
-                local petDetail = petData.PetData
-                local petType = petData.PetType or "Unknown"
-                local petWeight = petDetail.BaseWeight or 0
-                local petAge = petDetail.Level or math.huge
+        if isFavorite or toolType ~= "l" and not petUUID then
+            continue
+        end
 
-                for _, selectedPet in ipairs(petName) do
-                    if petType == selectedPet 
-                        and petWeight <= weighLessThan
-                        and petAge <= ageLessThan then
+        local petData = self:GetPetData(petUUID)
+        if not petData then
+            warn("Pet data not found for UUID:", petUUID)
+            continue
+        end
 
-                        PlayerUtils:EquipTool(Tool)
-                        wait(0.5)
-                        local getEquippedTool = PlayerUtils:GetEquippedTool()
-                        GameServices.GameEvents.SellPet_RE:FireServer(getEquippedTool)
-                        wait(0.5)
+        local petDetail = petData.PetData
+        local petType = petData.PetType or "Unknown"
+        local petWeight = petDetail.BaseWeight or 0
+        local petAge = petDetail.Level or math.huge
+
+        for _, selectedPet in ipairs(petName) do
+            -- Only sell if petType matches, petWeight <= weighLessThan, and petAge <= ageLessThan
+            if petType == selectedPet and petWeight <= weighLessThan and petAge <= ageLessThan then
+                sellingCount = sellingCount + 1
+
+                -- Task function to execute after tool is equipped
+                local sellPetTask = function()
+                    wait(0.2) -- Small delay to ensure tool is equipped
+                    local equippedTool = PlayerUtils:GetEquippedTool()
+                    if equippedTool then
+                        GameServices.GameEvents.SellPet_RE:FireServer(equippedTool)
+                        print("💰 Sold pet:", petType, "Weight:", petWeight, "Age:", petAge)
+                        wait(0.3) -- Wait for sell response
+                    else
+                        warn("Failed to get equipped tool for selling")
                     end
                 end
+                
+                -- Callback when sell task is completed
+                local sellCallback = function(success, error)
+                    soldCount = soldCount + 1
+                    print(string.format("Progress: %d/%d pets sold", soldCount, sellingCount))
+                    
+                    if success then
+                        print("✅ Pet sell task completed for:", petType)
+                    else
+                        warn("❌ Pet sell task failed:", error)
+                    end
+                end
+
+                -- Add to queue with hight priority (1)
+                PlayerUtils:AddToQueue(
+                    Tool,              -- tool
+                    1,                 -- priority (high)
+                    sellPetTask,       -- task function
+                    sellCallback       -- callback
+                )
+                
+                wait(0.1) -- Small delay between queue additions
             end
         end
     end
 
     if corePetTeam then
-        wait(2)
+        -- Wait until all queue tasks are finished before changing team
+        while soldCount < sellingCount do
+            print("⏳ Waiting for all sell tasks to finish before changing team...")
+            wait(0.5)
+        end
+
         print("Reverting to Core Pet Team:", corePetTeam)
         self:ChangeToTeamPets(corePetTeam)
         wait(2)
@@ -531,33 +582,41 @@ end
 
 function PetUtils:HatchEgg()
     print("Hatching eggs...")
-    local placedEggs = self:GetAllPlacedEggs()
-    if #placedEggs == 0 then
+    if #self:GetAllPlacedEggs() == 0 then
         print("No placed eggs found to hatch.")
         return
     end
 
-    wait(2)
-    local maxTimeToHatch = 0
-    local eggsToHatch = {}
-
-    for _, egg in pairs(placedEggs) do
-        if egg.Name == "PetEgg" then
-            local owner = egg:GetAttribute("OWNER")
-            local timeToHatch = egg:GetAttribute("TimeToHatch") or 0
-            if owner == GameServices.LocalPlayer.Name then
+    -- Wait for eggs to be ready using while loop
+    print("⏳ Waiting for eggs to be ready to hatch...")
+    while true do
+        local allReady = true
+        local readyCount = 0
+        local maxTimeToHatch = 0
+        
+        for _, egg in pairs(self:GetAllPlacedEggs()) do
+            if egg and egg.Parent then -- Check if egg still exists
+                local timeToHatch = egg:GetAttribute("TimeToHatch") or 0
                 if timeToHatch > 0 then
+                    allReady = false
                     maxTimeToHatch = math.max(maxTimeToHatch, timeToHatch)
+                else
+                    readyCount = readyCount + 1
                 end
-                table.insert(eggsToHatch, egg)
             end
         end
+        
+        print("🥚 Ready eggs:", readyCount, "/", #self:GetAllPlacedEggs())
+
+        if allReady or readyCount == #self:GetAllPlacedEggs() then
+            print("✅ All eggs are ready to hatch!")
+            break
+        end
+        
+        wait(maxTimeToHatch) -- Check every second
     end
 
-    local waitTime = math.max(2, maxTimeToHatch)
-    wait(waitTime)
-
-    if #eggsToHatch == 0 then
+    if #self:GetAllPlacedEggs() == 0 then
         print("No eggs are ready to hatch.")
         return
     end
@@ -577,7 +636,7 @@ function PetUtils:HatchEgg()
     end
 
     local specialHatchingEgg = {}
-    for _, egg in pairs(eggsToHatch) do
+    for _, egg in pairs(self:GetAllPlacedEggs()) do
         local eggUUID = egg:GetAttribute("OBJECT_UUID")
         local eggData = self:GetPlacedEggDetail(eggUUID)
         local baseWeight = eggData and eggData.BaseWeight or 1
@@ -636,40 +695,71 @@ function PetUtils:PlaceEgg()
     if eggName == "" then
         return
     end
-    
-    local totalPlacedEggs = #self:GetAllPlacedEggs()
-    local availableSlots = maxEggs - totalPlacedEggs
-    
-    if availableSlots < 1 then
-        return
-    end
-
-    
+        
     local eggOwnedName = self:FindEggOwnedEgg(eggName)
 
     if not eggOwnedName then
         return
     end
 
-    PlayerUtils:EquipTool(eggOwnedName)
-    wait(0.5) -- Wait for tool to be equipped
+    print("🥚 Starting egg placement using queue system...")
     
-    for i = 1, availableSlots do
-        local success = pcall(function()
+    while #self:GetAllPlacedEggs() < maxEggs do
+        -- Check if we're still processing the previous egg
+        if isEggPlacementInProgress then
+            print("⏳ Waiting for egg placement to complete...")
+            wait(0.5)
+            continue
+        end
+
+        local currentEggs = #self:GetAllPlacedEggs()
+        local eggsNeeded = maxEggs - currentEggs
+        
+        print("🥚 Current eggs:", currentEggs, "Need:", eggsNeeded)
+        
+        -- Set processing flag before adding to queue
+        isEggPlacementInProgress = true
+        
+        -- Task function to execute after tool is equipped
+        local placeEggTask = function()
             local randomPoint = FarmUtils:GetRandomFarmPoint()
             if randomPoint then
+                wait(0.5) -- Small delay to ensure tool is equipped
                 GameServices.GameEvents.PetEggService:FireServer("CreateEgg", randomPoint)
+                print("🥚 Placed egg at position:", randomPoint)
+                wait(0.5) -- Wait for server response
+            else
+                warn("Failed to get random farm point for egg placement")
             end
-        end)
-        
-        if not success then
-            warn("Failed to place egg", i)
         end
         
-        wait(0.5)
-    end
+        -- Callback when task is completed
+        local taskCallback = function(success, error)
+            -- Wait a bit more for the egg to appear in the farm
+            wait(0.5)
+            isEggPlacementInProgress = false
+            if success then
+                print("✅ Egg placement task completed successfully")
+            else
+                warn("❌ Egg placement task failed:", error)
+            end
+        end
 
-    PlayerUtils:UnequipTool() -- Unequip the egg tool after placing
+        -- Add to queue with high priority (1)
+        PlayerUtils:AddToQueue(
+            eggOwnedName,           -- tool
+            1,                      -- priority (high)
+            placeEggTask,          -- task function
+            taskCallback           -- callback
+        )
+        
+        -- Wait a bit to ensure the task is queued before next iteration
+        wait(0.2)
+    end
+    
+    print("🎉 Egg placement completed! Total eggs:", #self:GetAllPlacedEggs())
+    
+    PlayerUtils:UnequipTool()
 end
 
 return PetUtils

@@ -54,6 +54,21 @@ function m:CreateShopTab()
             end
         end,
     })
+
+    -- Event Item Purchase
+    shopTab:AddToggle({
+        Name = "Auto Buy Event Items 🎉",
+        Default = false,
+        Flag = "AutoBuyEventSeedStageItems",
+        Callback = function(Value)
+            if Value then
+                ShopModule:StartEventAutomation()
+            else
+                ShopModule:StopEventAutomation()
+            end
+        end,
+    })
+
 end
 
 return m

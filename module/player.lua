@@ -4,6 +4,13 @@ local Player = {}
 local Core
 local antiAFKConnection -- Store the connection reference
 
+-- Queue system for tool equipping
+local ToolQueue = {
+    queue = {},
+    isProcessing = false,
+    currentTask = nil
+}
+
 function Player:Init(core)
     if not core then
         error("Player:Init - Core module is required")
@@ -16,6 +23,11 @@ function Player:Init(core)
         Core.VirtualUser:ClickButton2(Vector2.new())
         print("Anti-AFK: Clicked to prevent idle kick")
     end)
+    
+    -- Initialize queue system
+    ToolQueue.queue = {}
+    ToolQueue.isProcessing = false
+    ToolQueue.currentTask = nil
 end
 
 function Player:RemoveAntiAFK()
@@ -71,6 +83,150 @@ function Player:EquipTool(Tool)
     end
     
     return true
+end
+
+-- ===== QUEUE SYSTEM =====
+
+-- Add task to queue
+-- tool: Tool object to equip
+-- priority: Number (lower = higher priority, default = 5)
+-- taskFunction: Function to execute after tool is equipped (optional)
+-- callback: Function to call when task is complete (optional)
+function Player:AddToQueue(tool, priority, taskFunction, callback)
+    priority = priority or 5
+    
+    if not tool or not tool:IsA("Tool") then
+        warn("Player:AddToQueue - Invalid tool provided")
+        if callback then callback(false, "Invalid tool") end
+        return false
+    end
+    
+    local task = {
+        id = tick(), -- Unique identifier
+        tool = tool,
+        priority = priority,
+        taskFunction = taskFunction,
+        callback = callback,
+        timestamp = tick()
+    }
+    
+    -- Insert task in priority order (lower priority number = higher priority)
+    local inserted = false
+    for i, existingTask in ipairs(ToolQueue.queue) do
+        if priority < existingTask.priority then
+            table.insert(ToolQueue.queue, i, task)
+            inserted = true
+            break
+        end
+    end
+    
+    if not inserted then
+        table.insert(ToolQueue.queue, task)
+    end
+    
+    print("🔧 Added tool to queue:", tool.Name, "Priority:", priority, "Queue size:", #ToolQueue.queue)
+    
+    -- Start processing if not already processing
+    if not ToolQueue.isProcessing then
+        self:ProcessQueue()
+    end
+    
+    return true
+end
+
+-- Process the queue
+function Player:ProcessQueue()
+    if ToolQueue.isProcessing then
+        return -- Already processing
+    end
+    
+    if #ToolQueue.queue == 0 then
+        return -- Queue is empty
+    end
+    
+    ToolQueue.isProcessing = true
+    
+    task.spawn(function()
+        while #ToolQueue.queue > 0 do
+            local currentTask = table.remove(ToolQueue.queue, 1) -- Take first (highest priority) task
+            ToolQueue.currentTask = currentTask
+            
+            print("🔧 Processing tool queue task:", currentTask.tool.Name)
+            
+            -- Equip the tool
+            local success, err = pcall(function()
+                local equipSuccess = self:EquipTool(currentTask.tool)
+                if not equipSuccess then
+                    error("Failed to equip tool")
+                end
+                
+                -- Execute task function if provided
+                if currentTask.taskFunction then
+                    wait(0.1) -- Small delay to ensure tool is equipped
+                    local taskSuccess, taskErr = pcall(currentTask.taskFunction)
+                    if not taskSuccess then
+                        warn("Task function failed:", taskErr)
+                    end
+                end
+            end)
+
+            self:UnequipTool() -- Unequip after task
+            
+            -- Call callback if provided
+            if currentTask.callback then
+                task.spawn(function()
+                    local callbackSuccess, callbackErr = pcall(currentTask.callback, success, err)
+                    if not callbackSuccess then
+                        warn("Callback function failed:", callbackErr)
+                    end
+                end)
+            end
+            
+            if not success then
+                warn("🔧 Queue task failed:", err)
+            else
+                print("✅ Queue task completed:", currentTask.tool.Name)
+            end
+            
+            ToolQueue.currentTask = nil
+            wait(0.1) -- Small delay between tasks
+        end
+        
+        ToolQueue.isProcessing = false
+        print("🔧 Queue processing completed")
+    end)
+end
+
+-- Get current queue status
+function Player:GetQueueStatus()
+    return {
+        queueSize = #ToolQueue.queue,
+        isProcessing = ToolQueue.isProcessing,
+        currentTask = ToolQueue.currentTask and ToolQueue.currentTask.tool.Name or nil
+    }
+end
+
+-- Clear the queue
+function Player:ClearQueue()
+    ToolQueue.queue = {}
+    ToolQueue.isProcessing = false
+    ToolQueue.currentTask = nil
+    print("🔧 Tool queue cleared")
+end
+
+-- Remove specific task from queue by tool name
+function Player:RemoveFromQueue(toolName)
+    if not toolName then return false end
+    
+    for i = #ToolQueue.queue, 1, -1 do
+        if ToolQueue.queue[i].tool.Name == toolName then
+            table.remove(ToolQueue.queue, i)
+            print("🔧 Removed from queue:", toolName)
+            return true
+        end
+    end
+    
+    return false
 end
 
 function Player:UnequipTool()

@@ -23,6 +23,10 @@ function AutomationState:GetGearState()
     return Window and Window:GetConfigValue("AutoBuyGears") or false
 end
 
+function AutomationState:GetEventState()
+    return Window and Window:GetConfigValue("AutoBuyEventSeedStageItems") or false
+end
+
 -- Compatibility properties for dynamic access
 setmetatable(AutomationState, {
     __index = function(self, key)
@@ -32,12 +36,14 @@ setmetatable(AutomationState, {
             return self:GetEggState()
         elseif key == "gears" then
             return self:GetGearState()
+        elseif key == "events" then
+            return self:GetEventState()
         end
         return rawget(self, key)
     end,
     __newindex = function(self, key, value)
         -- Block setting automation states directly
-        if key == "seeds" or key == "eggs" or key == "gears" then
+        if key == "seeds" or key == "eggs" or key == "gears" or key == "events" then
             warn("Cannot set automation state directly. Use config values instead.")
             return
         end
@@ -57,6 +63,7 @@ function m:Init(CoreInstance, PlayerUtilsInstance, WindowInstance)
     print("🌱 Seed Automation:", AutomationState.seeds)
     print("🥚 Egg Automation:", AutomationState.eggs)
     print("⚙️ Gear Automation:", AutomationState.gears)
+    print("🎉 Event Automation:", AutomationState.events)
 
     self:StopAllAutomation() -- Ensure all automation is stopped on init
     
@@ -69,6 +76,7 @@ function m:Init(CoreInstance, PlayerUtilsInstance, WindowInstance)
         self:ConnectToStockChanges("seeds")
         self:ConnectToStockChanges("eggs") 
         self:ConnectToStockChanges("gears")
+        self:ConnectToStockChanges("events")
         
         wait(2)
     end)
@@ -223,6 +231,63 @@ function m:BuyAllGears()
     end
 end
 
+function m:GetAvailableEventItems()
+    local availableEventItems = {}
+    
+    local EventShop = Core:GetPlayerGui():FindFirstChild("EventShop_UI")
+    if not EventShop then
+        warn("Event Shop GUI not found")
+        return availableEventItems
+    end
+
+    local Frame = EventShop:FindFirstChild("Frame")
+    if not Frame then
+        warn("Frame not found in Event Shop")
+        return availableEventItems
+    end
+
+    local Items = Frame:FindFirstChild("ScrollingFrame")
+    if not Items then
+        warn("ScrollingFrame not found in Event Shop")
+        return availableEventItems
+    end
+
+    for _, Item in pairs(Items:GetChildren()) do
+        local MainFrame = Item:FindFirstChild("Main_Frame")
+        if not MainFrame then continue end
+
+        local StockText = MainFrame:FindFirstChild("Stock_Text")
+        if not StockText then continue end
+
+        local StockCount = tonumber(StockText.Text:match("%d+"))
+        
+        availableEventItems[Item.Name] = StockCount
+    end
+
+    return availableEventItems
+end
+
+function m:BuyEventItem(itemName)
+    if not itemName or itemName == "" then
+        warn("Invalid event item name")
+        return
+    end
+
+    Core.GameEvents.BuyEventShopStock:FireServer(itemName, 5)
+end
+
+function m:BuyAllEventItems()
+    local eventItems = self:GetAvailableEventItems()
+    for itemName, stock in pairs(eventItems) do
+        if stock and stock > 0 then
+            for i = 1, stock do
+                self:BuyEventItem(itemName)
+                wait(0.1) -- Small delay to avoid spamming
+            end
+        end
+    end
+end
+
 -- ===== AUTOMATION FUNCTIONS =====
 
 -- Helper function to connect to stock text changes
@@ -250,6 +315,15 @@ function m:ConnectToStockChanges(shopType)
             if itemsParent then itemsParent = itemsParent.Parent end
         end
         buyFunction = function() self:BuyAllGears() end
+    elseif shopType == "events" then
+        shopGUI = Core:GetPlayerGui():WaitForChild("EventShop_UI", 10)
+        if shopGUI then
+            local frame = shopGUI:FindFirstChild("Frame")
+            if frame then
+                itemsParent = frame:FindFirstChild("ScrollingFrame")
+            end
+        end
+        buyFunction = function() self:BuyAllEventItems() end
     end
 
     if not shopGUI or not itemsParent then
@@ -319,8 +393,6 @@ function m:ConnectToStockText(item, shopType, buyFunction)
         local stockCount = tonumber(stockText.Text:match("%d+")) or 0
         local lastStock = AutomationState.lastStockCheck[connectionKey] or 0
         
-        print("🔍 RESTOCK EVENT for " .. item.Name .. ": " .. stockCount .. " (was " .. lastStock .. "), automation: " .. tostring(AutomationState[shopType]))
-        
         -- Enhanced trigger conditions:
         -- 1. Stock increased (normal restock)
         -- 2. Stock went from 0 to any positive number (first restock)
@@ -342,9 +414,7 @@ function m:ConnectToStockText(item, shopType, buyFunction)
                 wait(0.1) -- Minimal delay
                 if AutomationState[shopType] then
                     local success, err = pcall(buyFunction)
-                    if success then
-                        print("✅ Restock purchase successful for " .. item.Name)
-                    else
+                    if not success then
                         warn("❌ Error in restock purchase:", err)
                     end
                 end
@@ -480,10 +550,48 @@ function m:StartGearAutomation()
     end
 end
 
+function m:StartEventAutomation()
+    if AutomationState.events then
+        warn("Event automation is already running")
+        return
+    end
+    
+    -- Reset stock tracking to ensure next restock triggers purchase
+    for key, _ in pairs(AutomationState.lastStockCheck) do
+        if key:match("^events_") then
+            AutomationState.lastStockCheck[key] = 0
+        end
+    end
+    
+    -- Initial purchase (immediate)
+    task.spawn(function()
+        wait(0.5) -- Small delay to ensure connections are ready
+        local success, err = pcall(function() self:BuyAllEventItems() end)
+        if not success then
+            warn("Error in initial event item purchase:", err)
+        end
+    end)
+    
+    -- Ensure connections exist (if not already connected from init)
+    local hasConnections = false
+    for key, _ in pairs(AutomationState.textConnections) do
+        if key:match("^events_") then
+            hasConnections = true
+            break
+        end
+    end
+    
+    if not hasConnections then
+        print("🔌 Creating event connections...")
+        self:ConnectToStockChanges("events")
+    end
+end
+
 function m:StartAllAutomation()
     self:StartSeedAutomation()
     self:StartEggAutomation()
     self:StartGearAutomation()
+    self:StartEventAutomation()
 end
 
 function m:StopSeedAutomation()
@@ -513,10 +621,20 @@ function m:StopGearAutomation()
     print("🛑 Stopped Gear Automation")
 end
 
+function m:StopEventAutomation()
+    if not AutomationState.events then
+        warn("Event automation is not running")
+        return
+    end
+    
+    print("🛑 Stopped Event Automation")
+end
+
 function m:StopAllAutomation()
     self:StopSeedAutomation()
     self:StopEggAutomation()
     self:StopGearAutomation()
+    self:StopEventAutomation()
 end
 
 
