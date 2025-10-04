@@ -23,8 +23,21 @@ function m:CreateNotificationTab()
         MaxLength = 500,
     })
 
+    tab:AddLabel("Discord Ping ID (optional)")
+    tab:AddTextBox({
+        Name = "Discord Ping ID",
+        Default = "",
+        Flag = "DiscordPingID",
+        Placeholder = "123456789012345678",
+        MaxLength = 50,
+    })
+
     tab:AddButton("Test Notification", function()
-        Test:HatchEgg("Test Pet", "Test Egg", 10)
+        task.spawn(function()
+            Test:HatchEgg("Test Pet", "Test Egg", 10)
+            task.wait(0.15)
+            Test:Statistics("Test Egg", 5)
+        end)
     end)
 end
 

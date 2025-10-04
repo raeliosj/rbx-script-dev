@@ -21,10 +21,6 @@ function m:CreatePetTab()
         Icon = "😺",
     })
 
-    tab:AddButton("Boost All Active Pets 💪", function()
-        Pet:BoostAllActivePets()
-    end)
-
     self:AddPetTeamsSection(tab)
     self:AddEggsSection(tab)
     self:AddSellSection(tab)

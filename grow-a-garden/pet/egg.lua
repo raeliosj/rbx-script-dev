@@ -341,6 +341,8 @@ function m:HatchEgg()
         Core.GameEvents.PetEggService:FireServer("HatchPet", egg)
     end
 
+    task.wait(1)
+
     if specialHatchPetTeam and #specialHatchingEgg > 0 then
         Pet:ChangeTeamPets(specialHatchPetTeam)
         task.wait(2)
@@ -363,6 +365,11 @@ function m:HatchEgg()
         end)
     end
 
+    if #specialHatchingEgg > 0 then
+        task.wait(1)
+    end
+
+
     local isAutoSellAfterHatch = Window:GetConfigValue("AutoSellPetsAfterHatching") or false
     local corePetTeam = Window:GetConfigValue("CorePetTeam") or nil
 
@@ -373,6 +380,14 @@ function m:HatchEgg()
     end
 
     self:PlacingEgg()
+
+    task.spawn(function()
+        local eggName = Window:GetConfigValue("EggPlacing") or "N/A"
+        local tooolEgg = self:FindEggOwnedEgg(eggName)
+        local totalOwnedEggs = tooolEgg and (tooolEgg:GetAttribute("e") or 0) or 0
+        
+        Webhook:Statistics(eggName, totalOwnedEggs)
+    end)
 end
 
 return m
