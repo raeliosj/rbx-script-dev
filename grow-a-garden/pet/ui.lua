@@ -141,8 +141,8 @@ function m:AddEggsSection(tab)
         OnInit = function(currentOptions, updateOptions, selectBoxAPI)
             local formattedEggs = {}
 
-            local OwnedEggs = Egg:GetEggRegistry()
-            for egg, _ in pairs(OwnedEggs) do
+            local listdEggs = Egg:GetEggRegistry()
+            for egg, _ in pairs(listdEggs) do
                 table.insert(formattedEggs, {text = egg, value = egg})
             end
 

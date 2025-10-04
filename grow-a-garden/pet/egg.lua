@@ -56,25 +56,22 @@ function m:StopAutoHatching()
 end
 
 function m:GetEggRegistry()
-    local success, eggRegistry = pcall(function()
+    local success, petRegistry = pcall(function()
         return require(Core.ReplicatedStorage.Data.PetRegistry)
     end)
     
     if not success then           
-        warn("Failed to get pet registry:", eggRegistry)
+        warn("Failed to get pet registry:", petRegistry)
         return {}
     end
     
-    local eggList = eggRegistry.PetEggs
+    local eggList = petRegistry.PetEggs
     if not eggList then
-        warn("PetList is nil or not found")
+        warn("PetEggs is nil or not found")
         return {}
     end
 
-    for eggName, _ in pairs(eggList) do
-        eggList[eggName] = eggName
-    end
-
+    -- Return the eggList as-is for PetEggRenderer compatibility
     return eggList
 end
 

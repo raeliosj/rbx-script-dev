@@ -11,29 +11,29 @@ local GardenModule = require('farm/garden.lua')
 local PlantModule = require('farm/plant.lua')
 local FarmUI = require('farm/ui.lua')
 
--- -- Quest module
--- local QuestUI = require('quest/ui.lua')
+-- Quest module
+local QuestUI = require('quest/ui.lua')
 
--- -- Event modules
--- local EventSubmit = require('event/seed_stages/submit.lua')
--- local EventShop = require('event/seed_stages/shop.lua')
--- local EventUI = require('event/seed_stages/ui.lua')
+-- Event modules
+local EventSubmit = require('event/seed_stages/submit.lua')
+local EventShop = require('event/seed_stages/shop.lua')
+local EventUI = require('event/seed_stages/ui.lua')
 
--- -- Shop modules
--- local ShopModule = require('shop/shop.lua')
--- local ShopSeedModule = require('shop/seed.lua')
--- local ShopGearModule = require('shop/gear.lua')
--- local ShopEggModule = require('shop/egg.lua')
--- local ShopSeasonPassModule = require('shop/season_pass.lua')
--- local TravelingShop = require('shop/traveling.lua')
--- local ShopUI = require('shop/ui.lua')
+-- Shop modules
+local ShopModule = require('shop/shop.lua')
+local ShopSeedModule = require('shop/seed.lua')
+local ShopGearModule = require('shop/gear.lua')
+local ShopEggModule = require('shop/egg.lua')
+local ShopSeasonPassModule = require('shop/season_pass.lua')
+local TravelingShop = require('shop/traveling.lua')
+local ShopUI = require('shop/ui.lua')
 
 -- -- Pet modules
--- local PetTeamModule = require('pet/team.lua')
--- local PetWebhook = require('pet/webhook.lua')
--- local EggModule = require('pet/egg.lua')
--- local PetModule = require('pet/pet.lua')
--- local PetUI = require('pet/ui.lua')
+local PetTeamModule = require('pet/team.lua')
+local PetWebhook = require('pet/webhook.lua')
+local EggModule = require('pet/egg.lua')
+local PetModule = require('pet/pet.lua')
+local PetUI = require('pet/ui.lua')
 
 -- Notification module
 local NotificationUI = require('notification/ui.lua')
@@ -72,7 +72,6 @@ task.wait(1) -- Ensure config is loaded
 
 -- Player
 PlayerModule:Init(CoreModule)
-ShopModule:Init(CoreModule)
 
 -- Farm
 GardenModule:Init(window, CoreModule, PlayerModule)
@@ -82,39 +81,40 @@ FarmUI:CreateFarmTab()
 print("Farm initialized")
 
 -- -- Pet
--- PetTeamModule:Init(CoreModule, PlayerModule, window, EzUI.NewConfig("PetTeamConfig"), GardenModule)
--- PetWebhook:Init(window, CoreModule, Discord)
--- PetModule:Init(CoreModule, PlayerModule, window, GardenModule, PetTeamModule)
--- EggModule:Init(CoreModule, PlayerModule, window, GardenModule, PetModule, PetWebhook)
--- PetUI:Init(window, PetTeamModule, EggModule, PetModule, GardenModule, PlayerModule)
--- PetUI:CreatePetTab()
--- print("Pet initialized")
+PetTeamModule:Init(CoreModule, PlayerModule, window, EzUI.NewConfig("PetTeamConfig"), GardenModule)
+PetWebhook:Init(window, CoreModule, Discord)
+PetModule:Init(CoreModule, PlayerModule, window, GardenModule, PetTeamModule)
+EggModule:Init(CoreModule, PlayerModule, window, GardenModule, PetModule, PetWebhook)
+PetUI:Init(window, PetTeamModule, EggModule, PetModule, GardenModule, PlayerModule)
+PetUI:CreatePetTab()
+print("Pet initialized")
 
--- -- Event
--- EventSubmit:Init(window, CoreModule, PlayerModule)
--- EventShop:Init(window, CoreModule, ShopModule)
--- EventUI:Init(window, EventSubmit, EventShop)
+-- Shop
+ShopModule:Init(CoreModule)
+ShopSeedModule:Init(window, CoreModule, ShopModule)
+ShopGearModule:Init(window, CoreModule, ShopModule)
+ShopEggModule:Init(window, CoreModule, ShopModule)
+TravelingShop:Init(window, CoreModule, ShopModule)
+ShopSeasonPassModule:Init(window, CoreModule, ShopModule)
+ShopUI:Init(window, ShopEggModule, ShopSeedModule, ShopGearModule, EventUI, ShopSeasonPassModule, TravelingShop)
+ShopUI:CreateShopTab()
+print("Shop initialized")                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  
 
--- -- Quest
--- QuestUI:Init(window, CoreModule, EventUI)
--- QuestUI:CreateQuestTab()
--- print("Quest initialized")
+-- Event
+EventSubmit:Init(window, CoreModule, PlayerModule)
+EventShop:Init(window, CoreModule, ShopModule)
+EventUI:Init(window, EventSubmit, EventShop)
 
--- -- Shop
--- ShopSeedModule:Init(window, CoreModule, ShopModule)
--- ShopGearModule:Init(window, CoreModule, ShopModule)
--- ShopEggModule:Init(window, CoreModule, ShopModule)
--- TravelingShop:Init(window, CoreModule, ShopModule)
--- ShopSeasonPassModule:Init(window, CoreModule, ShopModule)
--- ShopUI:Init(window, ShopEggModule, ShopSeedModule, ShopGearModule, EventUI, ShopSeasonPassModule, TravelingShop)
--- ShopUI:CreateShopTab()
--- print("Shop initialized")                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  
+-- Quest
+QuestUI:Init(window, CoreModule, EventUI)
+QuestUI:CreateQuestTab()
+print("Quest initialized")
 
 -- Server
 ServerUI:Init(window, CoreModule, PlayerModule, GardenModule)
 ServerUI:CreateServerTab()
 print("Server initialized")
 
--- Notification
+-- -- Notification
 NotificationUI:Init(window, PetWebhook)
 NotificationUI:CreateNotificationTab()
