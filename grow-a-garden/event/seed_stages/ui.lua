@@ -1,11 +1,18 @@
 local m = {}
 
-function m:Init(windowInstance, seedStagesModuleInstance)
-    Window = windowInstance
-    SeedStagesModule = seedStagesModuleInstance
+local Window
+local SeedStagesModule
+local SeedStageShop
+
+local BackpackConnection
+
+function m:Init(_window, _seedStagesModule, _shop)
+    Window = _window
+    SeedStagesModule = _seedStagesModule
+    SeedStageShop = _shop
 end
 
-function m:CreateQuestSection(tab)
+function m:AddQuestSection(tab)
     local eventAccordion = tab:AddAccordion({
         Title = "Event Seed Stages",
         Icon = "🎉",
@@ -26,25 +33,18 @@ function m:CreateQuestSection(tab)
     })
 end
 
--- function m:CreateShopSection(tab)
---     local shopAccordion = tab:AddAccordion({
---         Title = "Event Seed Stages Shop",
---         Icon = "🛍️",
---         Default = false,
---     })
+function m:AddShopEventToggles(tab)
+    tab:AddToggle({
+        Name = "Auto Buy Event Items 🎉",
+        Default = false,
+        Flag = "AutoBuyEventItems",
+        Callback = function(Value)
+            if Value then
+                SeedStageShop:BuyAllEventItems()
+            end
+        end,
+    })
+end
 
---     shopAccordion:AddToggle({
---         Name = "Auto Buy Event Seed Stage Seeds 🌱",
---         Default = false,
---         Flag = "AutoBuyEventSeedStageSeeds",
---         Callback = function(Value)
---             if Value then
---                 SeedStagesModule:StartSeedStageSeedAutomation()
---             else
---                 SeedStagesModule:StopSeedStageSeedAutomation()
---             end
---         end,
---     })
--- end
 
 return m
