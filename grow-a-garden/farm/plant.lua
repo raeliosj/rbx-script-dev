@@ -77,8 +77,8 @@ function m:GetPlantRegistry()
     return formattedSeeds
 end
 
-function m:PlantSeed(seedName, numToPlant)
-    if not seedName or type(seedName) ~= "string" then
+function m:PlantSeed(_seedName, _numToPlant, _plantingPosition)
+    if not _seedName or type(_seedName) ~= "string" then
         warn("FarmUtils:PlantSeed - Invalid seed name")
         return false
     end
@@ -93,30 +93,31 @@ function m:PlantSeed(seedName, numToPlant)
     for _, t in next, Player:GetAllTools() do
         local toolType = t:GetAttribute("b")
         local toolSeed = t:GetAttribute("Seed")
-        if toolType == "n" and toolSeed == seedName then
+        if toolType == "n" and toolSeed == _seedName then
             tool = t
             toolQuantity = t:GetAttribute("Quantity") or 0
             break
         end
     end
 
-    if toolQuantity < numToPlant then
-        numToPlant = toolQuantity
+    if toolQuantity < _numToPlant then
+        _numToPlant = toolQuantity
     end
     
     if not tool then
+        print("No seed tool found for seed:", _seedName)
+
         return false
     end
-
-    local plantingPosition = Window:GetConfigValue("PlantingPosition") or "Random"
+    
     local position = Garden:GetFarmRandomPosition()
-    if plantingPosition == "Front Right" then
+    if _plantingPosition == "Front Right" then
         position = Garden:GetFarmFrontRightPosition()
-    elseif plantingPosition == "Front Left" then
+    elseif _plantingPosition == "Front Left" then
         position = Garden:GetFarmFrontLeftPosition()
-    elseif plantingPosition == "Back Right" then
+    elseif _plantingPosition == "Back Right" then
         position = Garden:GetFarmBackRightPosition()
-    elseif plantingPosition == "Back Left" then
+    elseif _plantingPosition == "Back Left" then
         position = Garden:GetFarmBackLeftPosition()
     end
     if not position then
@@ -124,12 +125,12 @@ function m:PlantSeed(seedName, numToPlant)
         return false
     end
 
-    local plantTask = function(numToPlant, seedName, position)
-        for i = 1, numToPlant do
+    local plantTask = function(_numToPlant, _seedName, _position)
+        for i = 1, _numToPlant do
             if #PlantsPhysical:GetChildren() >= 800 then
                 break
             end            
-            Core.GameEvents.Plant_RE:FireServer(position, seedName)
+            Core.GameEvents.Plant_RE:FireServer(_position, _seedName)
             -- Small delay between planting actions
             task.wait(0.15)
         end
@@ -139,7 +140,7 @@ function m:PlantSeed(seedName, numToPlant)
         tool,       -- tool
         3,          -- priority (medium)
         function()
-            plantTask(numToPlant, seedName, position)
+            plantTask(_numToPlant, _seedName, position)
         end
     )
 end
@@ -168,6 +169,7 @@ end
 function m:StartAutoPlanting()
     local seedsToPlant = Window:GetConfigValue("SeedsToPlant") or {}
     local seedToPlantCount = Window:GetConfigValue("SeedsToPlantCount") or 1
+    local plantingPosition = Window:GetConfigValue("PlantingPosition") or "Random"
 
     -- Cache plant count once at the beginning
     if #PlantsPhysical:GetChildren() >= 800 then
@@ -186,7 +188,7 @@ function m:StartAutoPlanting()
         local numToPlant = math.max(0, seedToPlantCount - numExisting)
 
         if numToPlant > 0 then
-            self:PlantSeed(seedName, numToPlant)
+            self:PlantSeed(seedName, numToPlant, plantingPosition)
             plantsNeeded = true
         end
     end
@@ -285,7 +287,8 @@ function m:GetAllGrowingPlants()
 
     local growingPlants = {}
     for _, plant in pairs(PlantsPhysical:GetChildren()) do
-        if not self:EligibleToHarvest(plant) then
+        local doneGrowTime = plant:GetAttribute("DoneGrowTime") or 0
+        if doneGrowTime > tick() then
             table.insert(growingPlants, plant)
         end
     end
@@ -314,6 +317,91 @@ function m:IsMaxInventory()
     return currentItems >= maxCapacity
 end
 
+function m:GetFruitPlant(plan)
+    local fruits = {}
+    
+    for _, child in pairs(plan.Fruits:GetChildren()) do
+        table.insert(fruits, child)
+    end
+    
+    return fruits
+end
+
+function m:GetPlantDetail(_plant)
+    if not _plant or not _plant:IsA("Model") then
+        warn("Invalid plant")
+        return nil
+    end
+
+    local prompt = _plant:FindFirstChild("ProximityPrompt", true)
+    local parentFruit = prompt and prompt.Parent.Parent.Parent
+    local fruits = {}
+
+    if not prompt or not parentFruit then
+        -- No prompt means not ready to harvest, so no fruits
+        fruits = {}
+    elseif parentFruit and parentFruit.Name == "Fruits" then
+        for _, fruit in pairs(parentFruit:GetChildren()) do
+            table.insert(fruits, fruit)
+        end
+    else
+        fruits = { _plant }
+    end
+
+    local doneGrowTime = _plant:GetAttribute("DoneGrowTime") or math.huge
+
+    local detail = {
+        name = _plant.Name or "Unknown",
+        position = _plant:GetPivot().Position or Vector3.new(0,0,0),
+        isGrowing = doneGrowTime < tick() or false,
+        fruits = {},
+    }
+
+    for _, fruit in pairs(fruits) do
+        local mutations = {}
+
+        for attributeName, attributeValue in pairs(fruit:GetAttributes()) do
+            if attributeValue == true then
+                table.insert(mutations, attributeName)
+            end
+        end
+
+        table.insert(detail.fruits, {
+            isEligibleToHarvest = self:EligibleToHarvest(fruit),
+            mutations = mutations,
+            model = fruit,
+        })
+    end
+
+    return detail
+end
+
+function m:HarvestFruit(_fruit)
+    if not _fruit or not _fruit:IsA("Model") then
+        warn("Invalid plant or fruit")
+        return false
+    end
+
+    if not self:EligibleToHarvest(_fruit) then
+        return false
+    end
+
+    if self:IsMaxInventory() then
+        return false
+    end
+
+    local success, err = pcall(function()
+        Core.GameEvents.Crops.Collect:FireServer({_fruit})
+    end)
+
+    if not success then
+        warn("Failed to harvest item:", _fruit.Name, "Error:", err)
+        return false
+    end
+
+    return true
+end
+
 function m:StartAutoHarvesting()
     if Window:GetConfigValue("AutoHarvestPlants") ~= true then
         warn("Auto harvesting is disabled in config")
@@ -333,41 +421,36 @@ function m:StartAutoHarvesting()
     end
 
     local harvestedCount = 0
-    local maxHarvestPerCycle = 25 -- Limit harvests per cycle to reduce lag
 
     for _, plantName in pairs(plantsToHarvest) do
-        if harvestedCount >= maxHarvestPerCycle then
-            break
-        end
-
         local plants = self:FindPlants(plantName) or {}
-        local eligibleCount = 0
-        
-        -- Count eligible plants first (lighter operation)
-        for _, plant in pairs(plants) do
-            if self:EligibleToHarvest(plant) then
-                eligibleCount = eligibleCount + 1
-            end
-        end
 
         -- Harvest with limits
         for _, plant in pairs(plants) do
-            if self:IsMaxInventory() or harvestedCount >= maxHarvestPerCycle then
+            if self:IsMaxInventory() then
                 break
             end
 
-            if self:EligibleToHarvest(plant) then
-                local success, err = pcall(function()
-                    Core.GameEvents.Crops.Collect:FireServer({plant})
-                end)
+            local plantDetail = self:GetPlantDetail(plant)
+            if not plantDetail or not plantDetail.isGrowing then
+                print("Skipping non-growing plant:", plant.Name)
+                continue
+            end
 
-                if not success then
-                    warn("Failed to harvest plant:", plant.Name, "Error:", err)
+            for _, fruitDetail in pairs(plantDetail.fruits) do
+                if self:IsMaxInventory() then
+                    break
                 end
 
-                harvestedCount = harvestedCount + 1
-                 -- Small delay between harvests
-                task.wait(0.15) -- Small delay between harvests
+                if not fruitDetail.isEligibleToHarvest then
+                    continue
+                end
+
+                local success = self:HarvestFruit(fruitDetail.model)
+                if success then
+                    harvestedCount = harvestedCount + 1
+                    task.wait(0.15) -- Small delay between harvests
+                end
             end
         end
 
@@ -377,7 +460,7 @@ function m:StartAutoHarvesting()
     end
 
     if harvestedCount > 0 then
-        task.wait(8) -- Moderate wait after work
+        task.wait(0.5) -- Moderate wait after work
     else
         task.wait(15) -- Longer wait when nothing to do
     end

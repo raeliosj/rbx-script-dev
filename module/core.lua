@@ -60,7 +60,7 @@ function m:MakeLoop(_isEnableFunc, _func)
     coroutine.wrap(function()
         local lastCheck = 0
         local checkInterval = 5 -- Check config every 5 seconds instead of every 0.1 seconds
-        
+
 		while true do
             local currentTime = tick()
             local isEnabled = false
