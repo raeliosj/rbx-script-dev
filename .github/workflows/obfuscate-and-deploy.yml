@@ -41,7 +41,6 @@ jobs:
             lua-bundler \
               -e "$entity" \
               -o "output/$output" \
-              --release \
               --obfuscate 3
             
             echo "✓ Successfully obfuscated $entity to output/$output"
