@@ -4,16 +4,14 @@ local Window
 local EggShop
 local SeedShop
 local GearShop
-local EventShopUI
 local SeasonPassShop
 local TravelingShop
 
-function m:Init(_window, _eggShop, _seedShop, _gearShop, _eventShopUI, _seasonPassShop, _travelingShop)
+function m:Init(_window, _eggShop, _seedShop, _gearShop, _seasonPassShop, _travelingShop)
     Window = _window
     EggShop = _eggShop
     SeedShop = _seedShop
     GearShop = _gearShop
-    EventShopUI = _eventShopUI
     SeasonPassShop = _seasonPassShop
     TravelingShop = _travelingShop
 end
@@ -82,9 +80,6 @@ function m:CreateShopTab()
             end
         end,
     })
-    
-    -- Event Seed Stages Automation 
-    EventShopUI:AddShopEventToggles(tab)
 end
 
 return m

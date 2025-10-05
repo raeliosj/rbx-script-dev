@@ -1,8 +1,6 @@
 local m = {}
 
 local Window
-local SeedStagesModule
-local SeedStageShop
 
 local BackpackConnection
 

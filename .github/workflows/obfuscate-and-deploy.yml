@@ -1,0 +1,94 @@
+name: Obfuscate and Deploy Scripts
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  obfuscate-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout source repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Install lua-bundler from deb package
+        run: |
+          echo "Installing lua-bundler from official repository..."
+          curl -fsSL https://alfin-efendy.github.io/lua-bundler/install.sh | sudo bash
+          echo "Verifying installation..."
+          lua-bundler --help
+          echo "lua-bundler installed successfully!"
+      
+      - name: Read deploy.json and obfuscate scripts
+        run: |
+          # Read deploy.json and process each entry
+          for row in $(jq -c '.[]' deploy.json); do
+            entity=$(echo $row | jq -r '.entity')
+            output=$(echo $row | jq -r '.output')
+            
+            echo "Processing: $entity -> output/$output"
+            
+            # Create output directory if it doesn't exist
+            mkdir -p output
+            
+            # Run lua-bundler to obfuscate and bundle the script
+            # Using Level 3 (Heavy) obfuscation with release mode
+            lua-bundler \
+              -e "$entity" \
+              -o "output/$output" \
+              --release \
+              --obfuscate 3
+            
+            echo "✓ Successfully obfuscated $entity to output/$output"
+          done
+      
+      - name: List output files
+        run: |
+          echo "Output files:"
+          ls -la output/
+      
+      - name: Checkout target repository
+        uses: actions/checkout@v4
+        with:
+          repository: alfin-efendy/rbx-script
+          token: ${{ secrets.RBX_SCRIPT_DEPLOY }}
+          path: rbx-script
+          fetch-depth: 0
+      
+      - name: Copy obfuscated files to target repository
+        run: |
+          # Copy all files from output/ to the target repository
+          cp -r output/* rbx-script/
+          
+          # Show what was copied
+          echo "Files in target repository:"
+          ls -la rbx-script/
+      
+      - name: Commit and push to target repository
+        run: |
+          cd rbx-script
+          
+          # Configure git
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+          
+          # Add all changes
+          git add .
+          
+          # Check if there are changes to commit
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            # Commit with timestamp
+            git commit -m "Deploy obfuscated scripts - $(date +'%Y-%m-%d %H:%M:%S')"
+            
+            # Push to target repository
+            git push origin main
+            
+            echo "Successfully pushed obfuscated scripts to rbx-script repository"
+          fi

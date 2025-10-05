@@ -1,0 +1,6 @@
+[
+    {
+        "entity": "grow-a-garden/main.lua",
+        "output": "gag.lua"
+    }
+]

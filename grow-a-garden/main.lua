@@ -15,9 +15,7 @@ local FarmUI = require('farm/ui.lua')
 local QuestUI = require('quest/ui.lua')
 
 -- Event modules
-local EventSubmit = require('event/seed_stages/submit.lua')
-local EventShop = require('event/seed_stages/shop.lua')
-local EventUI = require('event/seed_stages/ui.lua')
+
 
 -- Shop modules
 local ShopModule = require('shop/shop.lua')
@@ -34,6 +32,10 @@ local PetWebhook = require('pet/webhook.lua')
 local EggModule = require('pet/egg.lua')
 local PetModule = require('pet/pet.lua')
 local PetUI = require('pet/ui.lua')
+
+-- Inventory modules
+local InventoryModule = require('inventory/inventory.lua')
+local InventoryUI = require('inventory/ui.lua')
 
 -- Notification module
 local NotificationUI = require('notification/ui.lua')
@@ -96,17 +98,20 @@ ShopGearModule:Init(window, CoreModule, ShopModule)
 ShopEggModule:Init(window, CoreModule, ShopModule)
 TravelingShop:Init(window, CoreModule, ShopModule)
 ShopSeasonPassModule:Init(window, CoreModule, ShopModule)
-ShopUI:Init(window, ShopEggModule, ShopSeedModule, ShopGearModule, EventUI, ShopSeasonPassModule, TravelingShop)
+ShopUI:Init(window, ShopEggModule, ShopSeedModule, ShopGearModule, ShopSeasonPassModule, TravelingShop)
 ShopUI:CreateShopTab()
 print("Shop initialized")                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  
 
+-- Inventory
+InventoryModule:Init(CoreModule, PlayerModule, window)
+InventoryUI:Init(window, InventoryModule, PetModule)
+InventoryUI:CreateTab()
+print("Inventory initialized")
+
 -- Event
-EventSubmit:Init(window, CoreModule, PlayerModule)
-EventShop:Init(window, CoreModule, ShopModule)
-EventUI:Init(window, EventSubmit, EventShop)
 
 -- Quest
-QuestUI:Init(window, CoreModule, EventUI)
+QuestUI:Init(window)
 QuestUI:CreateQuestTab()
 print("Quest initialized")
 

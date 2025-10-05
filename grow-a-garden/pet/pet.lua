@@ -292,25 +292,15 @@ function m:BoostAllActivePets()
     end
 end
 
-function m:GetAllPetsAtInventory()
+function m:GetAllOwnedPets()
     local myPets = {}
     
     for _, tool in next, Player:GetAllTools() do
         local toolType = tool:GetAttribute("b")
         toolType = toolType and string.lower(toolType) or ""
         if toolType == "l" then
-            table.insert(myPets, {text = tool.Name, value = tool.Name})
+            table.insert(myPets, tool)
         end
-    end
-
-    -- Sort pets alphabetically (ascending order) - Safe for all executors  
-    if #myPets > 0 then
-        table.sort(myPets, function(a, b)
-            if not a or not b or not a.text or not b.text then
-                return false
-            end
-            return string.lower(tostring(a.text)) < string.lower(tostring(b.text))
-        end)
     end
 
     return myPets
@@ -358,60 +348,59 @@ function m:GetPetRegistry()
 end
 
 function m:SellPet()
-    local petName = Window:GetConfigValue("PetToSell") or {}
+    local petNames = Window:GetConfigValue("PetToSell") or {}
     local weighLessThan = Window:GetConfigValue("WeightThresholdSellPet") or 1
     local ageLessThan = Window:GetConfigValue("AgeThresholdSellPet") or 1
     local sellPetTeam = Window:GetConfigValue("SellPetTeam") or nil
     local boostBeforeSelling = Window:GetConfigValue("AutoBoostBeforeSelling") or false
     local corePetTeam = Window:GetConfigValue("CorePetTeam") or nil
 
-    if #petName == 0 then
+    if #petNames == 0 then
         print("No pet selected for selling.")
-         if _corePetTeam then
-            print("Reverting to Core Pet Team:", _corePetTeam)
-            self:ChangeTeamPets(_corePetTeam)
+        if corePetTeam then
+            print("Reverting to Core Pet Team:", corePetTeam)
+            self:ChangeTeamPets(corePetTeam)
         end
         return
     end
 
-    local petsToSell = {}
-
-    for _, Tool in next, Player:GetAllTools() do
-        local toolType = Tool:GetAttribute("b")
-        local _petID = Tool:GetAttribute("PET_UUID")
-        local isFavorite = Tool:GetAttribute("d") or false
-
-        if isFavorite or toolType ~= "l" and not _petID then
+    -- Favorite pets should not be sold
+    for _, tool in pairs(self:GetAllOwnedPets()) do
+        local isFavorited = tool:GetAttribute("d") or false
+        if isFavorited then
             continue
         end
 
-        local petData = self:GetPetData(_petID)
+        local petID = tool:GetAttribute("PET_UUID")
+        local petData = self:GetPetData(petID)
         if not petData then
-            warn("Pet data not found for UUID:", _petID)
+            warn("Pet data not found for UUID:", petID)
             continue
         end
 
+        local petName = petData.PetType or "Unknown"
         local petDetail = petData.PetData
-        local petType = petData.PetType or "Unknown"
-        local petWeight = petDetail.BaseWeight or 0
+        local petWeight = petDetail.BaseWeight or 20
         local petAge = petDetail.Level or math.huge
 
-        for _, selectedPet in ipairs(petName) do
-            -- Only sell if petType matches, petWeight <= weighLessThan, and petAge <= ageLessThan
-            if petType == selectedPet and petWeight <= weighLessThan and petAge <= ageLessThan then
-                table.insert(petsToSell, Tool)
+        local isPetNameMatched = false
+        for _, selectedPet in ipairs(petNames) do
+            if petName == selectedPet then
+                isPetNameMatched = true
+                break
             end
         end
-    end
 
-    if #petsToSell < 1 then
-        print("No pets found matching the criteria for selling.")
-         if _corePetTeam then
-            print("Reverting to Core Pet Team:", _corePetTeam)
-            self:ChangeTeamPets(_corePetTeam)
+        if petWeight >= weighLessThan or petAge >= ageLessThan or not isPetNameMatched then
+            print("Skipping pet (does not meet sell criteria):", petName, "| Weight:", petWeight, "| Age:", petAge, "| Is Name Matched:", tostring(isPetNameMatched))
+
+            Core.GameEvents.Favorite_Item:FireServer(tool)
+            task.wait(0.15)
         end
-        return
     end
+    
+    task.wait(0.5) -- Wait for favorites to process
+    
     if sellPetTeam then
         self:ChangeTeamPets(sellPetTeam)
         task.wait(2)
@@ -420,40 +409,12 @@ function m:SellPet()
         end
     end
 
-
-    -- Task function to execute after tool is equipped
-    local sellPetTask = function(_corePetTeam, _petsToSell)
-        for _, petTool in pairs(_petsToSell) do
-            Player:EquipTool(petTool)
-            task.wait(0.5) -- Small delay to ensure tool is equipped
-            
-            local equippedTool = Player:GetEquippedTool()
-            if not equippedTool then
-                warn("Failed to get equipped tool for selling")
-                continue
-            end
-
-            Core.GameEvents.SellPet_RE:FireServer(equippedTool)
-            task.wait(0.5) -- Small delay between sells
-        end
-
-        if _corePetTeam then
-            print("Reverting to Core Pet Team:", _corePetTeam)
-            self:ChangeTeamPets(_corePetTeam)
-        end
-    end
-
-    -- Add to queue with high priority (1)
-    Player:AddToQueue(
-        petsToSell[1],              -- tool
-        1,                          -- priority (high)
-        function()
-            sellPetTask(corePetTeam, petsToSell)
-        end       -- task function
-    )
-end
-
-function m:SellAllPets()
     Core.GameEvents.SellAllPets_RE:FireServer()
+    task.wait(1) -- Wait for selling to process
+    
+    if corePetTeam then
+        self:ChangeTeamPets(corePetTeam)
+    end
 end
+
 return m

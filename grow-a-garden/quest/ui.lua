@@ -1,12 +1,8 @@
 local m = {}
 local Window
-local Quest
-local Event
 
-function m:Init(_window, _quest, _event)
+function m:Init(_window)
     Window = _window
-    Quest = _quest
-    Event = _event
 end
 
 function m:CreateQuestTab()
@@ -14,8 +10,6 @@ function m:CreateQuestTab()
         Name = "Quests",
         Icon = "📜",
     })
-
-   Event:AddQuestSection(tab)
 end
 
 return m
