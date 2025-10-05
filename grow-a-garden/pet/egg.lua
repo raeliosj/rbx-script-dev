@@ -159,11 +159,11 @@ function m:GetPlacedEggDetail(_eggID)
     
     -- Fallback method
     warn("Falling back to ReplicationClass method")
-    local ReplicationClass = Core.ReplicatedStorage.Modules.ReplicationClass
-    local DataStreamReplicator = ReplicationClass.new("DataStreamReplicator")
-    DataStreamReplicator:YieldUntilData()
+    local replicationClass = Core.ReplicatedStorage.Modules.ReplicationClass
+    local dataStreamReplicator = replicationClass.new("DataStreamReplicator")
+    dataStreamReplicator:YieldUntilData()
     
-    local replicationData = DataStreamReplicator:YieldUntilData().Table
+    local replicationData = dataStreamReplicator:YieldUntilData().Table
     local playerData = replicationData[Core.LocalPlayer.Name] or replicationData[tostring(Core.LocalPlayer.UserId)]
     
     if playerData and playerData[_eggID] then

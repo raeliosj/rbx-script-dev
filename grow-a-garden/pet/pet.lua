@@ -159,7 +159,7 @@ function m:ChangeTeamPets(_teamName)
     end
 
     -- Deactivate all current active pets
-    local activePets = self:GetAllActivePets()
+    local activePets = self:GetAllActivePets() or {}
     
     if not activePets then
         print("🐾 [CHANGE TEAM] No active pets to unequip")

@@ -1,6 +1,7 @@
 # Variables
 OUTPUT_FILE := ./output/bundle.lua
 INPUT_FILE := ./grow-a-garden/main.lua
+RELEASE_FILE := ./output/bundle-release.lua
 
 .PHONY: run
 run: 
@@ -28,3 +29,7 @@ run:
 		echo "$(RED)Entry file $(INPUT_FILE) not found!$(NC)"; \
 		exit 1; \
 	fi
+
+.PHONY: release
+release:
+	lua-bundler -e $(INPUT_FILE) -o $(RELEASE_FILE) --release --obfuscate 3
