@@ -92,6 +92,10 @@ function m:IsQuestFruit(_fruit)
         return isEligible
     end
 
+    if self.AscensionItem.Mutations == "" or self.AscensionItem.Mutations == "N/A" then
+        return true
+    end
+
     for attributeName, attributeValue in pairs(_fruit:GetAttributes()) do
         if attributeValue == true and attributeName == self.AscensionItem.Mutations then
             isEligible = true
@@ -115,8 +119,6 @@ function m:GetAllOwnedFruitsQuest()
 end
 
 function m:SubmitRebirth(fruit)
-
-
     local rebirthTask = function()
         Core.GameEvents.BuyRebirth:FireServer()
 
