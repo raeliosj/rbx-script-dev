@@ -98,11 +98,12 @@ function m:IsQuestFruit(_fruit)
         return isEligible
     end
 
-    if self.AscensionItem.Mutations == "" or self.AscensionItem.Mutations == "N/A" then
+    if not self.AscensionItem.Mutations or self.AscensionItem.Mutations == "" or self.AscensionItem.Mutations == "N/A" then
         return true
     end
 
     for attributeName, attributeValue in pairs(_fruit:GetAttributes()) do
+        print("Fruit Attribute:", attributeName, attributeValue)
         if attributeValue == true and attributeName == self.AscensionItem.Mutations then
             isEligible = true
             break
@@ -163,11 +164,17 @@ function m:AutoSubmitQuest()
     local plantToHarvest = {}
     for _, plant in pairs(plants) do
         if #plantToHarvest >= quest.Amount then
+            print("Collected enough plants to harvest for the quest.")
             break
+        end
+        if plant.name ~= quest.Name then
+            print("Skipping plant due to name mismatch:", plant.name, "vs", quest.Name)
+            continue
         end
 
         -- Get mutation name from attributes (key with value = true)
         local plantDetail = Plant:GetPlantDetail(plant)
+        print("Checking plant:", plant.name)
         if not plantDetail or #plantDetail.fruits == 0 then
             continue
         end
@@ -176,9 +183,6 @@ function m:AutoSubmitQuest()
                 continue
             end
 
-            if fruit.name ~= quest.Name then
-                continue
-            end
 
             print("Found matching fruit:", fruit.name)
             print("Required mutation:", quest.Mutations)
