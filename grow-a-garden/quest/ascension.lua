@@ -87,18 +87,22 @@ function m:IsQuestFruit(_fruit)
     local isEligible = false
     
     if not _fruit:IsA("Tool") then
+        print("Not a tool:", _fruit.Name)
         return isEligible
     end
 
     if _fruit:GetAttribute("b") ~= "j" then
+        print("Not a fruit (attribute b != j):", _fruit.Name, _fruit:GetAttribute("b"))
         return isEligible
     end
 
     if _fruit:FindFirstChild("f") ~= self.AscensionItem.Name then
+        print("Fruit name does not match quest:", _fruit.Name, "vs", self.AscensionItem.Name)
         return isEligible
     end
 
     if not self.AscensionItem.Mutations or self.AscensionItem.Mutations == "" or self.AscensionItem.Mutations == "N/A" then
+        print("No specific mutation required for quest, any fruit of this type is eligible.")
         return true
     end
 
