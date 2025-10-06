@@ -96,8 +96,8 @@ function m:IsQuestFruit(_fruit)
         return isEligible
     end
 
-    if _fruit:FindFirstChild("f") ~= self.AscensionItem.Name then
-        print("Fruit name does not match quest:", _fruit.Name, "vs", self.AscensionItem.Name)
+    if _fruit:GetAttribute("f") ~= self.AscensionItem.Name then
+        print("Fruit name does not match quest:", _fruit:GetAttribute("f"), "vs", self.AscensionItem.Name)
         return isEligible
     end
 
