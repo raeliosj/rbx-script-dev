@@ -69,6 +69,12 @@ function m:GetQuestDetail()
     local parsedName = itemName.Text
     local parsedAmount = tonumber(itemAmount.Text:match("%d+"))
     local parsedMutations = parseText(itemMutations.Text)
+
+    m.AscensionItem = {
+        Name = parsedName,
+        Amount = parsedAmount,
+        Mutations = parsedMutations
+    }
     
     return {
         Name = parsedName,
@@ -174,7 +180,10 @@ function m:AutoSubmitQuest()
                 continue
             end
 
-            if quest.Mutations == "" or quest.Mutations == "N/A" then
+            print("Found matching fruit:", fruit.name)
+            print("Required mutation:", quest.Mutations)
+            print("Fruit mutations:", table.concat(fruit.mutations, ", "))
+            if not quest.Mutations or quest.Mutations == "" or quest.Mutations == "N/A" then
                 table.insert(plantToHarvest, fruit.model)
                 break
             end
@@ -200,6 +209,7 @@ function m:AutoSubmitQuest()
             break
         end
 
+        print("Harvesting fruit:", fruit.Name)
         local success = Plant:HarvestFruit(fruit)
         if success then
             harvestedCount = harvestedCount + 1

@@ -409,6 +409,8 @@ function m:SellPet()
         end
     end
 
+    task.wait(1) -- Wait before selling
+
     Core.GameEvents.SellAllPets_RE:FireServer()
     task.wait(1) -- Wait for selling to process
     

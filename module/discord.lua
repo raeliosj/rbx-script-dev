@@ -23,12 +23,20 @@ function m:SendMessage(webhookUrl, data)
     }
 
     -- Mengirim POST request ke webhook
-   task.spawn(requestFunction, {
-        Url = webhookUrl,
-        Body = jsonData,
-        Method = 'POST',
-        Headers = headers
-    })
+    local success, err = pcall(function()
+        task.spawn(requestFunction, {
+            Url = webhookUrl,
+            Body = jsonData,
+            Method = 'POST',
+            Headers = headers
+        })
+    end)
+
+    if success then
+        print("Discord webhook sent successfully.")
+    else
+        warn("Failed to send Discord webhook:", err)
+    end
 end
 
 return m
