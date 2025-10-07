@@ -206,16 +206,6 @@ function m:AutoWateringPlants()
     local wateringEach = Window:GetConfigValue("WateringEach") or 5
     local wateringPosition = Window:GetConfigValue("WateringPosition") or "Front Right"
     local position = Garden:GetFarmRandomPosition()
-
-    if wateringPosition == "Front Right" then
-        position = Garden:GetFarmFrontRightPosition()
-    elseif wateringPosition == "Front Left" then
-        position = Garden:GetFarmFrontLeftPosition()
-    elseif wateringPosition == "Back Right" then
-        position = Garden:GetFarmBackRightPosition()
-    elseif wateringPosition == "Back Left" then
-        position = Garden:GetFarmBackLeftPosition()
-    end
     
     for _, Tool in next, Player:GetAllTools() do
         local toolType = Tool:GetAttribute("b")
@@ -230,7 +220,8 @@ function m:AutoWateringPlants()
         return
     end
 
-    if #self:GetAllGrowingPlants() < 1 then
+    local growingPlants = self:GetAllGrowingPlants()
+    if #growingPlants < 1 then
         task.wait(10) -- Wait before checking again
         return
     end
@@ -241,6 +232,19 @@ function m:AutoWateringPlants()
         return
     end
 
+    if wateringPosition == "Growing Plants" then
+        position = growingPlants[1]:GetPivot().Position
+    elseif wateringPosition == "Front Right" then
+        position = Garden:GetFarmFrontRightPosition()
+    elseif wateringPosition == "Front Left" then
+        position = Garden:GetFarmFrontLeftPosition()
+    elseif wateringPosition == "Back Right" then
+        position = Garden:GetFarmBackRightPosition()
+    elseif wateringPosition == "Back Left" then
+        position = Garden:GetFarmBackLeftPosition()
+    end
+
+    print("Watering at position:", position)
 
     local wateringTask = function(position, each)
         local watered = 0
@@ -287,8 +291,9 @@ function m:GetAllGrowingPlants()
 
     local growingPlants = {}
     for _, plant in pairs(PlantsPhysical:GetChildren()) do
-        local doneGrowTime = plant:GetAttribute("DoneGrowTime") or 0
-        if doneGrowTime > tick() then
+        local prompt = plant:FindFirstChild("ProximityPrompt", true)
+        if not prompt then
+            print("This plant is growing:", plant.Name)
             table.insert(growingPlants, plant)
         end
     end

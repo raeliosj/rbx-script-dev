@@ -106,7 +106,7 @@ function m:AddWateringSection(tab)
     accordion:AddSelectBox({
         Name = "Watering Position",
         Flag = "WateringPosition",
-        Options = {"Front Right", "Front Left", "Back Right", "Back Left"},
+        Options = {"Growing Plants", "Front Right", "Front Left", "Back Right", "Back Left"},
         Default = "Front Right",
         MultiSelect = false,
         Placeholder = "Select position...",
