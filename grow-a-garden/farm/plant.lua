@@ -353,7 +353,7 @@ function m:GetPlantDetail(_plant)
     local detail = {
         name = _plant.Name or "Unknown",
         position = _plant:GetPivot().Position or Vector3.new(0,0,0),
-        isGrowing = doneGrowTime < tick() or false,
+        isGrowing = not prompt or false,
         fruits = {},
     }
 

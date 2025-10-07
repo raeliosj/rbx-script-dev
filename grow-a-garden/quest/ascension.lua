@@ -5,21 +5,11 @@ local Core
 local Plant
 local Player
 
-m.AscensionItem = {
-    Name = "N/A",
-    Amount = 0,
-    Mutations = "N/A"
-}
-
 function m:Init(_window, _core, _plant, _player)
     Window = _window
     Core = _core
     Plant = _plant
     Player = _player
-
-    task.spawn(function()
-        m.AscensionItem = self:GetQuestDetail()
-    end)
 
     Core:MakeLoop(function()
         return Window:GetConfigValue("AutoAscend")
@@ -35,7 +25,15 @@ function m:GetQuestDetail()
         return nil
     end
 
-    local questDetail = UI.Frame.Display.RebirthDetails:FindFirstChild("RequiredItemTemplate")
+    local frame = UI:FindFirstChild("Frame")
+    if not frame then
+        warn("Frame not found in RebirthConfirmation UI")
+        return nil
+    end
+
+    local rebirthSubmitTime = frame.Frame:FindFirstChild("AscensionTimer")
+
+    local questDetail = frame.Display.RebirthDetails:FindFirstChild("RequiredItemTemplate")
     if not questDetail then
         warn("RequiredItemTemplate not found")
         return nil
@@ -69,17 +67,23 @@ function m:GetQuestDetail()
     local parsedName = itemName.Text
     local parsedAmount = tonumber(itemAmount.Text:match("%d+"))
     local parsedMutations = parseText(itemMutations.Text)
-
-    m.AscensionItem = {
-        Name = parsedName,
-        Amount = parsedAmount,
-        Mutations = parsedMutations
-    }
+    local isEligibleToSubmit = not rebirthSubmitTime.Visible
+    local nextRebirthSubmitTime = 0
+    if rebirthSubmitTime.Visible then
+        local text = rebirthSubmitTime.Text
+        local hours = tonumber(text:match("(%d+)h")) or 0
+        local minutes = tonumber(text:match("(%d+)m")) or 0
+        local seconds = tonumber(text:match("(%d+)s")) or 0
+        local totalSeconds = (hours * 3600) + (minutes * 60) + seconds
+        nextRebirthSubmitTime = tick() + totalSeconds
+    end
     
     return {
         Name = parsedName,
         Amount = parsedAmount,
-        Mutations = parsedMutations
+        Mutations = parsedMutations,
+        IsEligibleToSubmit = isEligibleToSubmit,
+        NextRebirthSubmitTime = nextRebirthSubmitTime
     }
 end
 
@@ -87,28 +91,28 @@ function m:IsQuestFruit(_fruit)
     local isEligible = false
     
     if not _fruit:IsA("Tool") then
-        print("Not a tool:", _fruit.Name)
         return isEligible
     end
 
     if _fruit:GetAttribute("b") ~= "j" then
-        print("Not a fruit (attribute b != j):", _fruit.Name, _fruit:GetAttribute("b"))
         return isEligible
     end
 
-    if _fruit:GetAttribute("f") ~= self.AscensionItem.Name then
-        print("Fruit name does not match quest:", _fruit:GetAttribute("f"), "vs", self.AscensionItem.Name)
+    local quest = self:GetQuestDetail()
+    if not quest then
         return isEligible
     end
 
-    if not self.AscensionItem.Mutations or self.AscensionItem.Mutations == "" or self.AscensionItem.Mutations == "N/A" then
-        print("No specific mutation required for quest, any fruit of this type is eligible.")
+    if _fruit:GetAttribute("f") ~= quest.Name then
+        return isEligible
+    end
+
+    if not quest.Mutations or quest.Mutations == "" or quest.Mutations == "N/A" then
         return true
     end
 
     for attributeName, attributeValue in pairs(_fruit:GetAttributes()) do
-        print("Fruit Attribute:", attributeName, attributeValue)
-        if attributeValue == true and attributeName == self.AscensionItem.Mutations then
+        if attributeValue == true and attributeName == quest.Mutations then
             isEligible = true
             break
         end
@@ -130,12 +134,16 @@ function m:GetAllOwnedFruitsQuest()
 end
 
 function m:SubmitRebirth(fruit)
+    local quest = self:GetQuestDetail()
+    if not quest or not quest.IsEligibleToSubmit then
+        print("Waiting for next rebirth submit time...", quest.NextRebirthSubmitTime - tick())
+        task.wait(quest.NextRebirthSubmitTime - tick() + 1)
+    end
+
     local rebirthTask = function()
         Core.GameEvents.BuyRebirth:FireServer()
 
         wait(1)
-
-        self.AscensionItem = self:GetQuestDetail()
     end
 
     Player:AddToQueue(fruit, 10, function()

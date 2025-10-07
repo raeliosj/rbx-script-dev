@@ -32,7 +32,7 @@ run:
 
 .PHONY: release
 release:
-	@lua-bundler -e $(INPUT_FILE) -o $(RELEASE_FILE) --obfuscate 3
+	@lua-bundler -e $(INPUT_FILE) -o $(RELEASE_FILE) --release --obfuscate 3
 	@echo "$(GREEN)Copying output file to clipboard...$(NC)"; \
 	if [ -f "$(RELEASE_FILE)" ]; then \
 		if command -v xclip >/dev/null 2>&1; then \

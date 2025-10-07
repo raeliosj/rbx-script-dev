@@ -386,7 +386,7 @@ function m:HatchEgg()
         local tooolEgg = self:FindEggOwnedEgg(eggName)
         local totalOwnedEggs = tooolEgg and (tooolEgg:GetAttribute("e") or 0) or 0
         
-        Webhook:Statistics(eggName, totalOwnedEggs)
+        Webhook:Statistics(eggName, totalOwnedEggs, Window:GetConfigValue("MaxPlaceEggs") or 0)
     end)
 end
 
