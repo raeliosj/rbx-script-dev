@@ -192,6 +192,9 @@ function m:ChangeTeamPets(_teamName)
         
         task.wait(0.25) -- Longer delay between equips
     end
+
+    -- Final wait to ensure all equips are processed
+    task.wait(1)
     
     return true
 end

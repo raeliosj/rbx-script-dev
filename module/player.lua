@@ -3,6 +3,7 @@ local m = {}
 -- Load Core module with error handling
 local Core
 local AntiAFKConnection -- Store the connection reference
+local ReconnectConnection
 
 -- Queue system for tool equipping
 local ToolQueue = {
@@ -18,10 +19,22 @@ function m:Init(_core)
     Core = _core
 
     -- Store the connection so we can disconnect it later
-    AntiAFKConnection = _core.LocalPlayer.Idled:Connect(function()
-        _core.VirtualUser:CaptureController()
-        _core.VirtualUser:ClickButton2(Vector2.new())
+    AntiAFKConnection = Core.LocalPlayer.Idled:Connect(function()
+        Core.VirtualUser:CaptureController()
+        Core.VirtualUser:ClickButton2(Vector2.new())
         print("Anti-AFK: Clicked to prevent idle kick")
+    end)
+
+    ReconnectConnection = Core.GuiService.ErrorMessageChanged:Connect(function()
+        local IsSingle = #Core.Players:GetPlayers() <= 1
+
+        --// Join a different server if the player is solo
+        if IsSingle then
+            Core:HopServer()
+            return
+        end
+
+        Core:Rejoin()
     end)
     
     -- Initialize queue system
@@ -38,6 +51,16 @@ function m:RemoveAntiAFK()
         print("Anti-AFK: Disconnected idle connection")
     else
         print("Anti-AFK: No connection to disconnect")
+    end
+end
+
+function m:RemoveReconnect()
+    if ReconnectConnection then
+        ReconnectConnection:Disconnect()
+        ReconnectConnection = nil
+        print("Reconnect: Disconnected error message connection")
+    else
+        print("Reconnect: No connection to disconnect")
     end
 end
 

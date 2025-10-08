@@ -298,6 +298,8 @@ function m:GetAllGrowingPlants()
         end
     end
 
+    print("Total growing plants found:", #growingPlants)
+
     return growingPlants
 end
 
