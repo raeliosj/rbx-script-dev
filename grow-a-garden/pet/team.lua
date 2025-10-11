@@ -15,19 +15,22 @@ function m:Init(_core, _player, _window, _petConfig, _garden)
 end
 
 function m:SaveTeamPets(_teamName, _listPets)
-    PetConfig.SetValue(_teamName, _listPets)
+    PetConfig:SetValue(_teamName, _listPets)
 end
 
 function m:GetAllPetTeams()
-    return PetConfig.GetAllKeys()
+    print("Fetching all pet teams from configuration...")
+    local allKeys = PetConfig:GetAllKeys()
+
+    return allKeys
 end
 
 function m:FindPetTeam(_teamName)
-    return PetConfig.GetValue(_teamName)
+    return PetConfig:GetValue(_teamName)
 end
 
 function m:DeleteTeamPets(_teamName)
-    PetConfig.DeleteKey(_teamName)
+    PetConfig:DeleteKey(_teamName)
 end
 
 return m

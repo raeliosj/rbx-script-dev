@@ -29,14 +29,13 @@ function m:AddPlantingSection(tab)
         Expanded = false,
     })
 
-    accordion:AddLabel("Select seeds to auto plant:")
     accordion:AddSelectBox({
-        Name = "Seeds to Plant",
+        Name = "Select seeds to auto plant",
         Options = {"Loading..."},
         Placeholder = "Select seeds...",
         MultiSelect = true,
         Flag = "SeedsToPlant",
-        OnInit = function(currentOptions, updateOptions, selectBoxAPI)
+       OnInit = function(api, optionsData)
             local seeds = Plant:GetPlantRegistry()
             local formattedSeeds = {}
             for _, seedData in pairs(seeds) do
@@ -45,13 +44,12 @@ function m:AddPlantingSection(tab)
                     value = seedData.plant
                 })
             end
-            updateOptions(formattedSeeds)
+            optionsData.updateOptions(formattedSeeds)
         end,
     })
 
-    accordion:AddLabel("Set the number of seeds to plant:")
     accordion:AddNumberBox({
-        Name = "Seeds to Plant",
+        Name = "Set the number of seeds to plant",
         Placeholder = "Enter number of seeds...",
         Flag = "SeedsToPlantCount",
         Min = 0,
@@ -60,9 +58,8 @@ function m:AddPlantingSection(tab)
         Increment = 1,
     })
 
-    accordion:AddLabel("Position planting seeds:")
     accordion:AddSelectBox({
-        Name = "Planting Position",
+        Name = "Position planting seeds",
         Flag = "PlantingPosition",
         Options = {"Random", "Front Right", "Front Left", "Back Right", "Back Left"},
         Default = "Random",
@@ -70,7 +67,7 @@ function m:AddPlantingSection(tab)
         Placeholder = "Select position...",
     })
 
-    accordion:AddButton("Save Planting Settings", function()
+    accordion:AddButton({Text = "Save Planting Settings", Callback = function()
         local selectedSeeds = Window:GetConfigValue("SeedsToPlant") or {}
         local seedsToPlantCount = Window:GetConfigValue("SeedsToPlantCount") or 1
 
@@ -78,7 +75,7 @@ function m:AddPlantingSection(tab)
         print("Number of Seeds to Plant:", seedsToPlantCount)
 
         Plant:PlantSeed(selectedSeeds[1], seedsToPlantCount)
-    end)
+    end})
 
     accordion:AddToggle({
         Name = "Enable Auto Planting",
@@ -102,7 +99,6 @@ function m:AddWateringSection(tab)
         Expanded = false,
     })
 
-    accordion:AddLabel("Watering Position:")
     accordion:AddSelectBox({
         Name = "Watering Position",
         Flag = "WateringPosition",
@@ -112,9 +108,8 @@ function m:AddWateringSection(tab)
         Placeholder = "Select position...",
     })
 
-    accordion:AddLabel("Set the Each Watering:")
     accordion:AddNumberBox({
-        Name = "Each Watering",
+        Name = "Set the Each Watering",
         Placeholder = "Enter number of waterings...",
         Flag = "WateringEach",
         Min = 1,
@@ -123,9 +118,8 @@ function m:AddWateringSection(tab)
         Increment = 1,
     })
 
-    accordion:AddLabel("Set the number of waterings delay:")
     accordion:AddNumberBox({
-        Name = "Watering Delay",
+        Name = "Set the number of waterings delay",
         Placeholder = "Enter watering delay...",
         Flag = "WateringDelay",
         Min = 0,
@@ -156,13 +150,12 @@ function m:AddHarvestingSection(tab)
         Expanded = false,
     })
 
-    accordion:AddLabel("Select plants to auto harvest:")
     accordion:AddSelectBox({
-        Name = "Plants to Harvest",
+        Name = "Select plants to auto harvest",
         Flag = "PlantsToHarvest",
         MultiSelect = true,
         Placeholder = "Select plants...",
-        OnInit = function(currentOptions, updateOptions, selectBoxAPI)
+       OnInit = function(api, optionsData)
             local plants = Plant:GetPlantRegistry()
             local formattedPlants = {}
             for _, plantData in pairs(plants) do
@@ -171,7 +164,7 @@ function m:AddHarvestingSection(tab)
                     value = plantData.plant,
                 })
             end
-            updateOptions(formattedPlants)
+            optionsData.updateOptions(formattedPlants)
         end,
     })
     

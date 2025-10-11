@@ -244,8 +244,6 @@ function m:AutoWateringPlants()
         position = Garden:GetFarmBackLeftPosition()
     end
 
-    print("Watering at position:", position)
-
     local wateringTask = function(position, each)
         local watered = 0
         
@@ -293,12 +291,9 @@ function m:GetAllGrowingPlants()
     for _, plant in pairs(PlantsPhysical:GetChildren()) do
         local prompt = plant:FindFirstChild("ProximityPrompt", true)
         if not prompt then
-            print("This plant is growing:", plant.Name)
             table.insert(growingPlants, plant)
         end
     end
-
-    print("Total growing plants found:", #growingPlants)
 
     return growingPlants
 end
@@ -439,8 +434,7 @@ function m:StartAutoHarvesting()
             end
 
             local plantDetail = self:GetPlantDetail(plant)
-            if not plantDetail or not plantDetail.isGrowing then
-                print("Skipping non-growing plant:", plant.Name)
+            if not plantDetail or plantDetail.isGrowing then
                 continue
             end
 

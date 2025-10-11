@@ -1,5 +1,5 @@
 -- Main entry point
-local EzUI = loadstring(game:HttpGet('https://raw.githubusercontent.com/alfin-efendy/ez-rbx-ui/refs/heads/main/ui.lua'))()
+local EzUI = loadstring(game:HttpGet('https://github.com/alfin-efendy/ez-rbx-ui/releases/latest/download/ez-rbx-ui.lua'))()
 -- Import local modules
 local CoreModule = require('../module/core.lua')
 local PlayerModule = require('../module/player.lua')
@@ -39,24 +39,25 @@ local PetUI = require('pet/ui.lua')
 local InventoryModule = require('inventory/inventory.lua')
 local InventoryUI = require('inventory/ui.lua')
 
+-- Event modules
+local GhoulQuest = require('event/ghoul/quest.lua')
+local GhoulUI = require('event/ghoul/ui.lua')
+
 -- Notification module
 local NotificationUI = require('notification/ui.lua')
 
+local configFolder = "EzHub/EzGarden"
+
 -- Initialize window
-local window = EzUI.CreateWindow({
-    Name = "EzGarden",
+local window = EzUI:CreateNew({
+    Title = "EzGarden",
     Width = 700,
     Height = 400,
     Opacity = 0.9,
     AutoAdapt = true,
     AutoShow = false,
-    ConfigurationSaving = {
-        Enabled = true,
-        FolderName = "EzGarden",
-        FileName = "settings",
-        AutoLoad = true,
-        AutoSave = true,
-    },
+    FolderName = configFolder,
+    FileName = "settings",
 })
 
 window:SetCloseCallback(function()
@@ -70,6 +71,13 @@ window:SetCloseCallback(function()
 
 	print("Cleanup completed!")
 end)
+
+petTeamsConfig = EzUI:NewConfig({
+    FolderName = configFolder,
+    FileName = "PetTeams",
+})
+
+petTeamsConfig:Load()
 
 -- Wait load config
 task.wait(1) -- Ensure config is loaded
@@ -85,7 +93,7 @@ FarmUI:CreateFarmTab()
 print("Farm initialized")
 
 -- -- Pet
-PetTeamModule:Init(CoreModule, PlayerModule, window, EzUI.NewConfig("PetTeamConfig"), GardenModule)
+PetTeamModule:Init(CoreModule, PlayerModule, window, petTeamsConfig, GardenModule)
 PetWebhook:Init(window, CoreModule, Discord)
 PetModule:Init(CoreModule, PlayerModule, window, GardenModule, PetTeamModule)
 EggModule:Init(CoreModule, PlayerModule, window, GardenModule, PetModule, PetWebhook)
@@ -119,6 +127,10 @@ InventoryModule:Init(CoreModule, PlayerModule, window)
 InventoryUI:Init(window, InventoryModule, PetModule)
 InventoryUI:CreateTab()
 print("Inventory initialized")
+
+-- Event
+GhoulQuest:Init(window, CoreModule)
+GhoulUI:Init(window, GhoulQuest)
 
 -- Server
 ServerUI:Init(window, CoreModule, PlayerModule, GardenModule)

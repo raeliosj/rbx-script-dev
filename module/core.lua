@@ -74,13 +74,6 @@ function m:MakeLoop(_isEnableFunc, _func)
                     isEnabled = _isEnableFunc
                 end
                 lastCheck = currentTime
-            else
-                -- Use cached value between checks
-                if type(_isEnableFunc) == "function" then
-                    isEnabled = _isEnableFunc()
-                else
-                    isEnabled = _isEnableFunc
-                end
             end
             
 			if not isEnabled then

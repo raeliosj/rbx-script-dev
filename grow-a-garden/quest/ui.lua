@@ -58,14 +58,15 @@ local function getTimeRemaining()
 end
 
 function m:AscensionSection(tab)
-    local timeLabel
-    local updateRunning = false
-    
     local accordion = tab:AddAccordion({
         Name = "Ascension",
         Icon = "🔃",
         Expanded = false,
-        Callback = function()
+        Callback = function(isExpanded)
+            if not isExpanded then
+                return
+            end
+
             local ascensionItem = Ascension:GetQuestDetail()
 
             if not ascensionItem then
@@ -86,9 +87,8 @@ function m:AscensionSection(tab)
         return "Next Rebirth Submit Time: " .. getTimeRemaining()
     end)
     
-    accordion:AddLabel("Position planting seeds:")
     accordion:AddSelectBox({
-        Name = "Planting Position",
+        Name = "Position planting seeds",
         Flag = "PlantingAscensionPosition",
         Options = {"Random", "Front Right", "Front Left", "Back Right", "Back Left"},
         Default = "Random",

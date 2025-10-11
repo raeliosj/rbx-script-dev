@@ -136,7 +136,6 @@ end
 function m:SubmitRebirth(fruit)
     local quest = self:GetQuestDetail()
     if not quest or not quest.IsEligibleToSubmit then
-        print("Waiting for next rebirth submit time...", quest.NextRebirthSubmitTime - tick())
         task.wait(quest.NextRebirthSubmitTime - tick() + 1)
     end
 
@@ -168,7 +167,6 @@ function m:AutoSubmitQuest()
 
         local plantingPosition = Window:GetConfigValue("PlantingAscensionPosition") or "Random"
         
-        print("Planting more seeds:", quest.Name, "to reach", quest.Amount, "positions:", plantingPosition)
         Plant:PlantSeed(quest.Name, quest.Amount - #plants, plantingPosition)
         return
     end
@@ -176,17 +174,14 @@ function m:AutoSubmitQuest()
     local plantToHarvest = {}
     for _, plant in pairs(plants) do
         if #plantToHarvest >= quest.Amount then
-            print("Collected enough plants to harvest for the quest.")
             break
         end
         if plant.name ~= quest.Name then
-            print("Skipping plant due to name mismatch:", plant.name, "vs", quest.Name)
             continue
         end
 
         -- Get mutation name from attributes (key with value = true)
         local plantDetail = Plant:GetPlantDetail(plant)
-        print("Checking plant:", plant.name)
         if not plantDetail or #plantDetail.fruits == 0 then
             continue
         end
@@ -195,10 +190,6 @@ function m:AutoSubmitQuest()
                 continue
             end
 
-
-            print("Found matching fruit:", fruit.name)
-            print("Required mutation:", quest.Mutations)
-            print("Fruit mutations:", table.concat(fruit.mutations, ", "))
             if not quest.Mutations or quest.Mutations == "" or quest.Mutations == "N/A" then
                 table.insert(plantToHarvest, fruit.model)
                 break
@@ -214,7 +205,6 @@ function m:AutoSubmitQuest()
     end
 
     if not plantToHarvest or #plantToHarvest == 0 then
-        warn("No suitable plants found to submit for the quest.")
         return
     end
 
@@ -225,7 +215,6 @@ function m:AutoSubmitQuest()
             break
         end
 
-        print("Harvesting fruit:", fruit.Name)
         local success = Plant:HarvestFruit(fruit)
         if success then
             harvestedCount = harvestedCount + 1

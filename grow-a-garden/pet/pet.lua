@@ -12,6 +12,12 @@ function m:Init(_core, _player, _window, _garden, _petTeam)
     Window = _window
     Garden = _garden
     PetTeam = _petTeam
+
+    Core:MakeLoop(function()
+        return Window:GetConfigValue("AutoBoostPets")
+    end, function()
+        self:AutoBoostSelectedPets()
+    end)
 end
 
 function m:GetPetReplicationData()
@@ -234,6 +240,125 @@ function m:EligiblePetUseBoost(_petID, _boostType, _boostAmount)
     return isEligible
 end
 
+function m:BoostSelectedPets()
+    local petIDs = Window:GetConfigValue("BoostPets") or {}
+    if #petIDs == 0 then
+        print("No pets selected for boosting.")
+        return
+    end
+
+    local boostTypes = Window:GetConfigValue("BoostType") or {}
+    if #boostTypes == 0 then
+        print("No boost types selected.")
+        return
+    end
+
+    for _, boostType in pairs(boostTypes) do
+        local extractedType = {}
+        for match in string.gmatch(boostType, "([^%-]+)") do
+            table.insert(extractedType, match)
+        end
+
+        if #extractedType ~= 2 then
+            warn("Invalid boost type format:", boostType)
+            continue
+        end
+
+        local toolType = extractedType[1]
+        local toolAmount = tonumber(extractedType[2])
+        local boostTool = nil
+
+        for _, tool in next, Player:GetAllTools() do
+            local tType = tool:GetAttribute("q")
+            local tAmount = tool:GetAttribute("o")
+
+            if tType == toolType and tAmount == toolAmount then
+                boostTool = tool or nil
+                break
+            end
+        end
+
+        if not boostTool then
+            warn("No boost tool found for type:", boostType)
+            return
+        end
+
+        local boostingPetTask = function(_petIDs, _boostType, _boostAmount, _boostTool)
+            print("🚀 Starting boost task for tool:", _boostTool.Name)
+            for _, petID in pairs(_petIDs) do
+                local isEligible = self:EligiblePetUseBoost(petID, _boostType, _boostAmount)
+
+                if not isEligible then
+                    print("🐾 Skipping pet (not eligible for boost):", petID)
+                    continue
+                end
+
+                print("🐾 Boosting pet:", petID, "with", _boostType, "amount:", _boostAmount)
+                self:BoostPet(petID)
+                task.wait(0.15)
+            end
+        end
+
+        Player:AddToQueue(
+            boostTool,               -- tool
+            10,                  -- priority (high)
+            function()
+                boostingPetTask(petIDs, toolType, toolAmount, boostTool)
+            end    -- task function
+        )
+    end
+end
+
+function m:AutoBoostSelectedPets()
+    local autoBoost = Window:GetConfigValue("AutoBoostPets") or false
+    if not autoBoost then
+        return
+    end
+
+    local petIDs = Window:GetConfigValue("BoostPets") or {}
+    if #petIDs == 0 then
+        print("No pets selected for boosting.")
+        return
+    end
+
+    local boostTypes = Window:GetConfigValue("BoostType") or {}
+    if #boostTypes == 0 then
+        print("No boost types selected.")
+        return
+    end
+
+    local hasEligiblePet = false
+    for _, petID in pairs(petIDs) do
+        for _, boostType in pairs(boostTypes) do
+            local extractedType = {}
+            for match in string.gmatch(boostType, "([^%-]+)") do
+                table.insert(extractedType, match)
+            end
+            if #extractedType ~= 2 then
+                continue
+            end
+
+            local toolType = extractedType[1]
+            local toolAmount = tonumber(extractedType[2])
+            local isEligible = self:EligiblePetUseBoost(petID, toolType, toolAmount)
+            if isEligible then
+                hasEligiblePet = true
+                break
+            end
+        end
+        if hasEligiblePet then
+            break
+        end
+    end
+
+    if not hasEligiblePet then
+        print("No eligible pets found for boosting.")
+        return
+    end
+
+    self:BoostSelectedPets()
+end
+
 function m:BoostAllActivePets()
     local boostTool = {}
 
@@ -300,7 +425,7 @@ function m:GetAllOwnedPets()
     
     for _, tool in next, Player:GetAllTools() do
         local toolType = tool:GetAttribute("b")
-        toolType = toolType and string.lower(toolType) or ""
+        toolType = toolType or ""
         if toolType == "l" then
             table.insert(myPets, tool)
         end
@@ -309,6 +434,116 @@ function m:GetAllOwnedPets()
     return myPets
 end
 
+function m:GetPetDetail(_petID)
+    local petMutationRegistry = require(Core.ReplicatedStorage.Data.PetRegistry.PetMutationRegistry)
+
+    local petData = self:GetPetData(_petID)
+    if not petData then
+        warn("Pet data not found for UUID:", _petID)
+        return nil
+    end
+
+    local petDetail = petData.PetData
+
+    if not petDetail then
+        warn("Pet detail is nil for UUID:", _petID)
+        return nil
+    end
+
+    local mutationType = petDetail.MutationType or ""
+    local mutation = ""
+        if petMutationRegistry and petMutationRegistry.EnumToPetMutation then
+        mutation = petMutationRegistry.EnumToPetMutation[mutationType] or ""
+    end
+
+    return {
+        ID = _petID,
+        Name = petDetail.Name or "Unnamed",
+        Type = petData.PetType or "Unknown",
+        BaseWeight = petDetail.BaseWeight or 1,
+        Age = petDetail.Level or 0,
+        IsFavorited = petDetail.IsFavorited or false,
+        Mutation = mutation
+    }
+end
+
+function m:GetAllMyPets()
+    local myPets = {}
+    local pets = {}
+
+    for _, tool in pairs(self:GetAllOwnedPets()) do
+        local petID = tool:GetAttribute("PET_UUID")
+        if not petID then
+            warn("Pet tool missing PET_UUID attribute:", tool.Name)
+            continue
+        end
+
+        table.insert(pets, {
+            ID = petID,
+            IsActive = false
+        })
+    end
+
+    for petID, _ in pairs(self:GetAllActivePets()) do
+        if not petID then
+            warn("Active pet entry missing PET_UUID")
+            continue
+        end
+        
+        table.insert(pets, {
+            ID = petID,
+            IsActive = true
+        })
+    end
+
+    for _, pet in pairs(pets) do
+        local petDetail = self:GetPetDetail(pet.ID)
+        if not petDetail  then
+            warn("Pet detail not found for UUID:", pet.ID)
+            continue
+        end
+
+        table.insert(myPets, {
+            ID = petDetail.ID,
+            Name = petDetail.Name,
+            Type = petDetail.Type,
+            BaseWeight = petDetail.BaseWeight,
+            Age = petDetail.Age,
+            IsActive = pet.IsActive,
+            IsFavorited = petDetail.IsFavorited,
+            Mutation = petDetail.Mutation
+        })
+    end
+
+    -- Sort by active status first, then by type, then by age descending
+    table.sort(myPets, function(a, b)
+        if a.IsActive ~= b.IsActive then
+            return a.IsActive -- Active pets first
+        elseif a.Type ~= b.Type then
+            return a.Type < b.Type -- Alphabetical by type
+        else
+            return a.Age > b.Age -- Older pets first
+        end
+    end)
+
+    return myPets
+end
+
+function m:SerializePet(pet)
+    if not pet then return "" end
+    local weight = tonumber(pet.BaseWeight) or 0
+    local age = tonumber(pet.Age) or 0
+    local mutationPrefix = (pet.Mutation and pet.Mutation ~= "") and ("[" .. pet.Mutation .. "] ") or ""
+    local activeSuffix = pet.IsActive and " (Active)" or ""
+    return string.format("%s%s %.2f KG (age %d) - %s%s",
+        mutationPrefix,
+        pet.Type or "Unknown",
+        weight,
+        age,
+        pet.Name or "Unnamed",
+        activeSuffix
+    )
+end
 
 function m:GetPetRegistry()
     local success, petRegistry = pcall(function()

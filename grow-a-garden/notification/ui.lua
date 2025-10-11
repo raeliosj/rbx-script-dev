@@ -14,31 +14,31 @@ function m:CreateNotificationTab()
         Icon = "🔔",
     })
 
-    tab:AddLabel("Discord Webhook URL (for notifications)")
     tab:AddTextBox({
-        Name = "Discord Webhook URL",
+        Name = "Discord Webhook URL (for notifications)",
         Default = "",
         Flag = "DiscordWebhookURL",
         Placeholder = "https://discord.com/api/webhooks/...",
         MaxLength = 500,
     })
 
-    tab:AddLabel("Discord Ping ID (optional)")
     tab:AddTextBox({
-        Name = "Discord Ping ID",
+        Name = "Discord Ping ID (optional)",
         Default = "",
         Flag = "DiscordPingID",
         Placeholder = "123456789012345678",
         MaxLength = 50,
     })
 
-    tab:AddButton("Test Notification", function()
-        task.spawn(function()
-            Test:HatchEgg("Test Pet", "Test Egg", 10)
-            task.wait(0.15)
-            Test:Statistics("Test Egg", 5)
-        end)
-    end)
+    tab:AddButton(
+        {Text = "Test Notification", 
+        Callback = function()
+            task.spawn(function()
+                Test:HatchEgg("Test Pet", "Test Egg", 10)
+                task.wait(0.15)
+                Test:Statistics("Test Egg", 99, 123)
+            end)
+    end})
 end
 
 return m

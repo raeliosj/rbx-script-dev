@@ -26,22 +26,20 @@ function m:AddPetSection(tab)
         Expanded = false,
     })
 
-    accordion:AddLabel("Select pet name for auto favorite:")
     accordion:AddSelectBox({
-        Name = "Auto Favorite Pet Name",
+        Name = "Select pet name for auto favorite",
         Options = {"Loading..."},
         Placeholder = "Select a pet",
         MultiSelect = true,
         Flag = "AutoFavoritePetName",
-        OnInit = function(currentOptions, updateOptions, selectBoxAPI)
+       OnInit = function(api, optionsData)
             local specialPets = Pet:GetPetRegistry()
-            updateOptions(specialPets)
+            optionsData.updateOptions(specialPets)
         end
     })
 
-    accordion:AddLabel("Or If Weight Is Higher Than Or Equal To")
     accordion:AddNumberBox({
-        Name = "Weight Threshold",
+        Name = "Or If Weight Is Higher Than Or Equal To",
         Placeholder = "Enter weight...",
         Default = 0.0,
         Min = 0.0,
@@ -51,9 +49,8 @@ function m:AddPetSection(tab)
         Flag = "AutoFavoritePetWeight",
     })
 
-    accordion:AddLabel("Or If Age Is Higher Than Or Equal To")
     accordion:AddNumberBox({
-        Name = "Age Threshold",
+        Name = "Or If Age Is Higher Than Or Equal To",
         Placeholder = "Enter age...",
         Default = 0,
         Min = 0,
