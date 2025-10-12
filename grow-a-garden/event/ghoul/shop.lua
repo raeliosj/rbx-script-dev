@@ -5,67 +5,158 @@ local Core
 local Shop
 local ShopUI = "EventShop_UI"
 
-local SpookySeeds = {
-    "Bloodred Mushroom",
-    "Jack O Lantern",
-    "Ghoul Root",
-    "Chicken Feed",
-    "Seer Vine",
-    "Poison Apple",
-}
-local CreepyCritters = {
-    "Spooky Egg",
-    "Pumpin Rat",
-    "Wolf",
-    "Ghost Bear",
-    "Reaper",
-}
-local DevillishDecor = {
-    "Pumkin Crate",
-    "Ghost Lantern",
-    "Thombstones",
-    "Casket",
-    "Skull Chain",
+local ShopData
+local DataService
+
+local ShopStockConnection
+
+m.Merchant = {
+    "Spooky Seeds",
+    "Creepy Critters",
+    "Devilish Decor",
 }
 
 function m:Init(_window, _core, _shop)
     Window = _window
     Core = _core
     Shop = _shop
+
+    ShopData = require(Core.ReplicatedStorage.Data.EventShopData)
+    DataService = require(Core.ReplicatedStorage.Modules.DataService)
+
+    ShopStockConnection = DataService:GetPathSignal("EventShopStock"):Connect(function()
+        print("EventShopStock updated") -- IGNORE
+
+        task.spawn(self.StartAutoBuySpookySeeds, self)
+        task.spawn(self.StartAutoBuyCreepyCritters, self)
+        task.spawn(self.StartAutoBuyDevilishDecor, self)
+    end)
 end
 
-function m:BuyEventItem(itemName, shopName)
-    if not itemName or itemName == "" then
-        warn("Invalid event item name")
-        return
-    end
-
-    if not shopName or shopName == "" then
-        warn("Invalid shop name")
-        return
-    end
-
-    Core.GameEvents.BuyEventShopStock:FireServer(itemName, shopName)
+function m:GetItemRepository(merchant)
+    return ShopData[merchant] or {}
 end
 
-function m:BuyAllEventItems()
-    local items = Shop:GetAvailableItems(ShopUI)
+function m:GetDetailItem(merchant, itemName)
+    local items = self:GetItemRepository(merchant)
+    return items[itemName] or nil
+end
 
-    if not items or #items == 0 then
-        items = {} -- Initialize empty table first
-        for _, itemName in ipairs(ShopItems) do
-            items[itemName] = 5
+function m:GetStock(shopName, itemName)
+    local shopData = DataService:GetData()
+    local stock = 0
+    if not shopData then
+        return stock
+    end
+
+    stock = shopData.EventShopStock[shopName].Stocks[itemName] or 0
+
+    return stock
+end
+
+function m:GetAvailableItems(merchant)
+    local items = self:GetItemRepository(merchant)
+    local availableItems = {}
+
+    for itemName, _ in pairs(items) do
+        local stock = self:GetStock(merchant, itemName)
+        if stock > 0 then
+            table.insert(availableItems, itemName)
         end
     end
-    
-    for itemName, stock in pairs(items) do
-        if stock < 1 then
+
+    return availableItems
+end
+
+function m:StartAutoBuySpookySeeds()
+    if not Window:GetConfigValue("AutoBuySpookyShop") then
+        return
+    end
+
+    local merchant = "Spooky Seeds"
+    local itemNames = Window:GetConfigValue("SpookyShopItem")
+    if not itemNames or #itemNames == 0 then
+        warn("No items selected for auto-buy")
+        return
+    end
+
+    local availableItems = self:GetAvailableItems(merchant)
+    if #availableItems == 0 then
+        warn("No available items in stock for", merchant)
+        return
+    end
+
+    for _, itemName in ipairs(itemNames) do
+        local stock = self:GetStock(merchant, itemName)
+        if stock <= 0 then
+            warn("Item out of stock:", itemName)
             continue
         end
 
         for i = 1, stock do
-            self:BuyEventItem(itemName)
-            task.wait(0.1) -- Small delay to avoid spamming
+            Core.GameEvents.BuyEventShopStock:FireServer(itemName, merchant)
+        end
+    end
+end
+
+function m:StartAutoBuyCreepyCritters()
+    if not Window:GetConfigValue("AutoBuySpookyShop") then
+        return
+    end
+
+    local merchant = "Creepy Critters"
+    local itemNames = Window:GetConfigValue("SpookyShopItem")
+    if not itemNames or #itemNames == 0 then
+        warn("No items selected for auto-buy")
+        return
+    end
+
+    local availableItems = self:GetAvailableItems(merchant)
+    if #availableItems == 0 then
+        warn("No available items in stock for", merchant)
+        return
+    end
+
+    for _, itemName in ipairs(itemNames) do
+        local stock = self:GetStock(merchant, itemName)
+        if stock <= 0 then
+            warn("Item out of stock:", itemName)
+            continue
+        end
+
+        for i = 1, stock do
+            Core.GameEvents.BuyEventShopStock:FireServer(itemName, merchant)
+        end
+    end
+end
+
+function m:StartAutoBuyDevilishDecor()
+    if not Window:GetConfigValue("AutoBuySpookyShop") then
+        return
+    end
+
+    local merchant = "Devilish Decor"
+    local itemNames = Window:GetConfigValue("SpookyShopItem")
+    if not itemNames or #itemNames == 0 then
+        warn("No items selected for auto-buy")
+        return
+    end
+
+    local availableItems = self:GetAvailableItems(merchant)
+    if #availableItems == 0 then
+        warn("No available items in stock for", merchant)
+        return
+    end
+
+    for _, itemName in ipairs(itemNames) do
+        local stock = self:GetStock(merchant, itemName)
+        if stock <= 0 then
+            warn("Item out of stock:", itemName)
+            continue
+        end
+
+        for i = 1, stock do
+            Core.GameEvents.BuyEventShopStock:FireServer(itemName, merchant)
         end
     end
 end

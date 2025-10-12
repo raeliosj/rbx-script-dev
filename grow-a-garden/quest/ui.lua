@@ -2,7 +2,6 @@ local m = {}
 local Window
 local Core
 local Ascension
-local ChubbyChipmunkUI
 
 
 local AscensionItem = {
@@ -13,11 +12,10 @@ local AscensionItem = {
     NextRebirthSubmitTime = 0
 }
 
-function m:Init(_window, _core, _ascension, _chubbyChipmunkUI)
+function m:Init(_window, _core, _ascension)
     Window = _window
     Core = _core
     Ascension = _ascension
-    ChubbyChipmunkUI = _chubbyChipmunkUI
 
     AscensionItem = Ascension:GetQuestDetail()
 end
@@ -27,9 +25,6 @@ function m:CreateQuestTab()
         Name = "Quests",
         Icon = "📜",
     })
-
-    -- Chubby Chipmunk Event
-    ChubbyChipmunkUI:AddQuestSection(tab)
 
     -- Ascension
     self:AscensionSection(tab)

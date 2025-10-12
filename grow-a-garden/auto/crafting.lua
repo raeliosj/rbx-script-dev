@@ -93,11 +93,7 @@ function m:GetCraftingData(craftingStation, craftingItem)
     local data = {}
 
     for items, detail in pairs(MachineTypes[machineType] or {}) do
-        print("Checking item:", items, "for crafting item:", craftingItem)
-
         if items == craftingItem then
-            print("Found matching item:", items)
-
             table.insert(data, detail)
             break
         end
@@ -112,7 +108,6 @@ function m:GetCraftingRecipes(craftingStation, craftingItem)
     local recipes = {}
 
     if #craftingData == 0 then
-        print("No crafting data found for machine type:", craftingStation, "and crafting item:", craftingItem)
         return recipes
     end
 
@@ -123,19 +118,10 @@ function m:GetCraftingRecipes(craftingStation, craftingItem)
             end
             continue
         end
-        if type(detail) == "table" then
-            for k, v in pairs(detail) do
-                print("Detail key:", k, "value:", v)
-            end
-            continue
-        end
-
-        print("Detail data:", detail)
     end
 
     for i, input in pairs(craftingInputs) do
         local dataItems
-        print("Crafting input " .. i .. ": " .. tostring(input))
         table.insert(recipes, input)
     end
 
@@ -162,14 +148,11 @@ function m:GetCraftingStationStatus(craftingStation)
         end
     end
 
-    warn("GetCraftingStationStatus: No crafting item found, returning Ready to Start")
-
     return "Ready to Start"
 end
 
 function m:SetRecipe(craftingStation, craftingItem)
     if not craftingStation or not craftingItem then
-        print("SetRecipe: craftingStation or craftingItem is nil")
         return
     end
 
@@ -193,28 +176,20 @@ function m:SubmitCraftingRequest(craftingStation)
         return
     end
 
-    print("Crafting request submitted successfully:", success)
-
     local unsubmittedItems = self:GetUnsubmittedItems(craftingStation)
 
-    print("Unsubmitted items count:", #unsubmittedItems)
-    
     if #unsubmittedItems == 0 then
-        print("No unsubmitted items.")
         return
     end
 
     local needFruits = {}
-    print("Unsubmitted items:")
     for _, item in pairs(unsubmittedItems) do
-        print(" - " .. item.ItemData.ItemName .. " (" .. item.ItemType .. ")")
         if item.ItemType == "Holdable" then
             table.insert(needFruits, item.ItemData.ItemName)
         end
     end
 
     if #needFruits == 0 then
-        print("No need Fruits to submit.")
         return
     end
 
@@ -222,7 +197,6 @@ function m:SubmitCraftingRequest(craftingStation)
         local plants = Plant:FindPlants(fruit) or {}
 
         if #plants == 0 then
-            print("No plants found for fruit:", fruit)
             continue
         end
 
@@ -244,7 +218,6 @@ function m:SubmitCraftingRequest(craftingStation)
             end
 
             if successHarvest then
-                print("Successfully harvested fruit from plant:", plant.Name)
                 break
             end
         end
@@ -254,14 +227,7 @@ end
 function m:StartCrafting(craftingStation)
     local unsubmittedItems = self:GetUnsubmittedItems(craftingStation)
     
-    print("Unsubmitted items count:", #unsubmittedItems)
-    
     if #unsubmittedItems > 0 then
-        print("Unsubmitted items:")
-        for _, item in pairs(unsubmittedItems) do
-            print(" - " .. item.ItemData.ItemName .. " (" .. item.ItemType .. ")")
-        end
-
         return
     end
 
@@ -279,24 +245,19 @@ function m:StartCrafting(craftingStation)
         warn("Error starting crafting:", error)
         return
     end
-
-    print("Crafting started successfully:", success)
 end
 
 function m:CraftingController(craftingStation, craftingItem)
     if not craftingStation or not craftingItem then
-        print("CraftingController: craftingStation or craftingItem is nil")
         return
     end
 
     if self:GetCraftingStationStatus(craftingStation) == "Idle" then
-        print("CraftingController: Station is idle, setting recipe to", craftingItem)
         self:SetRecipe(craftingStation, craftingItem)
         task.wait(0.5) -- Wait for 0.5 seconds to allow the station to update its status
     end
 
     while self:GetCraftingStationStatus(craftingStation) == "Waiting for Item" do
-        print("CraftingController: Waiting for items to be submitted...")
         self:SubmitCraftingRequest(craftingStation)
         
         wait(5) -- Wait for 5 seconds before checking again
@@ -308,13 +269,11 @@ function m:CraftingController(craftingStation, craftingItem)
     end
     
     while self:GetCraftingStationStatus(craftingStation) == "On Progress" do
-        print("CraftingController: Crafting in progress, waiting...")
         wait(5) -- Wait for 5 seconds before checking again
     end
 
     if self:GetCraftingStationStatus(craftingStation) == "Ready to Claim" then
-        print("CraftingController: Crafting completed, claiming item...")
-        local success, error = pcall(function() 
+        local success, error = pcall(function()
             Core.GameEvents.CraftingGlobalObjectService:FireServer(
                 "Claim",
                 craftingStation,
@@ -328,11 +287,8 @@ function m:CraftingController(craftingStation, craftingItem)
             return
         end
 
-        print("Crafted item claimed successfully:", success)
         task.wait(0.5) -- Wait for 0.5 seconds to allow the
     end
-
-    print("CraftingController: Crafting cycle completed.")
 end
 
 function m:GetSubmittedItems(craftingStation)

@@ -15,10 +15,6 @@ local FarmUI = require('farm/ui.lua')
 local AscensionModule = require('quest/ascension.lua')
 local QuestUI = require('quest/ui.lua')
 
--- Event modules
-local ChubbyChipmunkQuest = require('event/chubby_chipmunk/quest.lua')
-local ChubbyChipmunkUI = require('event/chubby_chipmunk/ui.lua')
-
 -- Shop modules
 local ShopModule = require('shop/shop.lua')
 local ShopSeedModule = require('shop/seed.lua')
@@ -45,6 +41,7 @@ local InventoryUI = require('inventory/ui.lua')
 
 -- Event modules
 local GhoulQuest = require('event/ghoul/quest.lua')
+local GhoulShop = require('event/ghoul/shop.lua')
 local GhoulUI = require('event/ghoul/ui.lua')
 
 -- Notification module
@@ -121,13 +118,9 @@ ShopUI:Init(window, ShopEggModule, ShopSeedModule, ShopGearModule, ShopSeasonPas
 ShopUI:CreateShopTab()
 print("Shop initialized")                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  
 
--- Event
-ChubbyChipmunkQuest:Init(window, CoreModule)
-ChubbyChipmunkUI:Init(window, ChubbyChipmunkQuest)
-
 -- Quest
 AscensionModule:Init(window, CoreModule, PlantModule, PlayerModule)
-QuestUI:Init(window, CoreModule, AscensionModule, ChubbyChipmunkUI)
+QuestUI:Init(window, CoreModule, AscensionModule)
 QuestUI:CreateQuestTab()
 print("Quest initialized")
 
@@ -139,7 +132,8 @@ print("Inventory initialized")
 
 -- Event
 GhoulQuest:Init(window, CoreModule)
-GhoulUI:Init(window, GhoulQuest)
+GhoulShop:Init(window, CoreModule, ShopModule)
+GhoulUI:Init(window, GhoulQuest, GhoulShop)
 
 -- Server
 ServerUI:Init(window, CoreModule, PlayerModule, GardenModule)
