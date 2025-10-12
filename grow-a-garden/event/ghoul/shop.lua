@@ -24,13 +24,32 @@ function m:Init(_window, _core, _shop)
     ShopData = require(Core.ReplicatedStorage.Data.EventShopData)
     DataService = require(Core.ReplicatedStorage.Modules.DataService)
 
-    ShopStockConnection = DataService:GetPathSignal("EventShopStock"):Connect(function()
-        print("EventShopStock updated") -- IGNORE
+    Core:MakeLoop(
+        function()
+            return Window:GetConfigValue("AutoBuySpookyShop")
+        end, 
+        function()
+            self:StartAutoBuySpookySeeds()
+        end
+    )
 
-        task.spawn(self.StartAutoBuySpookySeeds, self)
-        task.spawn(self.StartAutoBuyCreepyCritters, self)
-        task.spawn(self.StartAutoBuyDevilishDecor, self)
-    end)
+    Core:MakeLoop(
+        function()
+            return Window:GetConfigValue("AutoBuyCreepyShop")
+        end, 
+        function()
+            self:StartAutoBuyCreepyCritters()
+        end
+    )
+
+    Core:MakeLoop(
+        function()
+            return Window:GetConfigValue("AutoBuyDevilishShop")
+        end, 
+        function()
+            self:StartAutoBuyDevilishDecor()
+        end
+    )
 end
 
 function m:GetItemRepository(merchant)
@@ -51,6 +70,14 @@ function m:GetStock(shopName, itemName)
 
     stock = shopData.EventShopStock[shopName].Stocks[itemName] or 0
 
+    if type(stock) ~= "number" then
+        warn("Invalid stock data for item:", itemName, " Stock: ", stock.Stock)
+        for key, value in pairs(stock) do
+            print(key, value)
+        end
+        return stock.Stock or 0
+    end
+
     return stock
 end
 
@@ -59,7 +86,7 @@ function m:GetAvailableItems(merchant)
     local availableItems = {}
 
     for itemName, _ in pairs(items) do
-        local stock = self:GetStock(merchant, itemName)
+        local stock = self:GetStock(merchant, itemName) or 0 or 0
         if stock > 0 then
             table.insert(availableItems, itemName)
         end
@@ -80,14 +107,9 @@ function m:StartAutoBuySpookySeeds()
         return
     end
 
-    local availableItems = self:GetAvailableItems(merchant)
-    if #availableItems == 0 then
-        warn("No available items in stock for", merchant)
-        return
-    end
-
     for _, itemName in ipairs(itemNames) do
-        local stock = self:GetStock(merchant, itemName)
+        local stock = self:GetStock(merchant, itemName) or 0
+
         if stock <= 0 then
             warn("Item out of stock:", itemName)
             continue
@@ -100,25 +122,20 @@ function m:StartAutoBuySpookySeeds()
 end
 
 function m:StartAutoBuyCreepyCritters()
-    if not Window:GetConfigValue("AutoBuySpookyShop") then
+    if not Window:GetConfigValue("AutoBuyCreepyShop") then
         return
     end
 
     local merchant = "Creepy Critters"
-    local itemNames = Window:GetConfigValue("SpookyShopItem")
+    local itemNames = Window:GetConfigValue("CreepyShopItem")
     if not itemNames or #itemNames == 0 then
         warn("No items selected for auto-buy")
         return
     end
 
-    local availableItems = self:GetAvailableItems(merchant)
-    if #availableItems == 0 then
-        warn("No available items in stock for", merchant)
-        return
-    end
-
     for _, itemName in ipairs(itemNames) do
-        local stock = self:GetStock(merchant, itemName)
+        local stock = self:GetStock(merchant, itemName) or 0
+
         if stock <= 0 then
             warn("Item out of stock:", itemName)
             continue
@@ -131,25 +148,20 @@ function m:StartAutoBuyCreepyCritters()
 end
 
 function m:StartAutoBuyDevilishDecor()
-    if not Window:GetConfigValue("AutoBuySpookyShop") then
+    if not Window:GetConfigValue("AutoBuyDevilishShop") then
         return
     end
 
     local merchant = "Devilish Decor"
-    local itemNames = Window:GetConfigValue("SpookyShopItem")
+    local itemNames = Window:GetConfigValue("DevilishShopItem")
     if not itemNames or #itemNames == 0 then
         warn("No items selected for auto-buy")
         return
     end
 
-    local availableItems = self:GetAvailableItems(merchant)
-    if #availableItems == 0 then
-        warn("No available items in stock for", merchant)
-        return
-    end
-
     for _, itemName in ipairs(itemNames) do
-        local stock = self:GetStock(merchant, itemName)
+        local stock = self:GetStock(merchant, itemName) or 0
+
         if stock <= 0 then
             warn("Item out of stock:", itemName)
             continue
