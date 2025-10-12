@@ -67,7 +67,7 @@ function m:AddPlantingSection(tab)
         Placeholder = "Select position...",
     })
 
-    accordion:AddButton({Text = "Save Planting Settings", Callback = function()
+    accordion:AddButton({Text = "Manual Planting", Callback = function()
         local selectedSeeds = Window:GetConfigValue("SeedsToPlant") or {}
         local seedsToPlantCount = Window:GetConfigValue("SeedsToPlantCount") or 1
 
