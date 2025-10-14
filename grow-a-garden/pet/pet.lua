@@ -5,13 +5,15 @@ local Player
 local Window
 local Garden
 local PetTeam
+local Webhook
 
-function m:Init(_core, _player, _window, _garden, _petTeam)
+function m:Init(_core, _player, _window, _garden, _petTeam, _webhook)
     Core = _core
     Player = _player
     Window = _window
     Garden = _garden
     PetTeam = _petTeam
+    Webhook = _webhook
 
     Core:MakeLoop(function()
         return Window:GetConfigValue("AutoBoostPets")
@@ -789,6 +791,10 @@ function m:AutoNightmareMutation()
         print("Checking mutation pet:", petDetail.Name)
         if petDetail.Mutation == "Nightmare" then
             print("Pet already has Nightmare mutation, skipping:", petDetail.Name)
+            task.spawn(function() 
+                Webhook:NightmareMutation(petDetail.Type, #petIDs - 1)
+            end)
+
             isPetIDAlreadyNightmare = petID
             break
         end

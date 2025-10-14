@@ -97,4 +97,31 @@ function m:Statistics(_eggName, _amount, _hatchedEgg)
     Discord:SendMessage(url, message)
 end
 
+function m:NightmareMutation(_petType, _remains)
+    local url = Window:GetConfigValue("DiscordWebhookURL") or ""
+    local pingId = Window:GetConfigValue("DiscordPingID") or ""
+    if url == "" then
+        return
+    end
+
+    local message = {
+        content = pingId ~= "" and ("<@"..pingId..">") or nil,
+        embeds = {{
+            title = "**EzGarden**",
+            type = 'rich',
+            color = tonumber("0x8B00FF"),
+            fields = {{
+                name = '**Profile : ** \n',
+                value = '> Username : ||'..PlayerName.."||",
+                inline = false
+            }, {
+                name = "**Nightmare Mutation : **",
+                value = "> Pet Type: ``"..(_petType or"N/A").."``"..
+                       "\n> Remains Queue: ``"..(_remains or"N/A").."``",
+                inline = false
+            }}
+        }}
+    }
+    Discord:SendMessage(url, message)
+end
 return m

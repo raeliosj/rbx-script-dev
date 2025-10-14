@@ -100,7 +100,7 @@ print("Farm initialized")
 -- -- Pet
 PetTeamModule:Init(CoreModule, PlayerModule, window, petTeamsConfig, GardenModule)
 PetWebhook:Init(window, CoreModule, Discord)
-PetModule:Init(CoreModule, PlayerModule, window, GardenModule, PetTeamModule)
+PetModule:Init(CoreModule, PlayerModule, window, GardenModule, PetTeamModule, PetWebhook)
 EggModule:Init(CoreModule, PlayerModule, window, GardenModule, PetModule, PetWebhook)
 PetUI:Init(window, PetTeamModule, EggModule, PetModule, GardenModule, PlayerModule)
 PetUI:CreatePetTab()
