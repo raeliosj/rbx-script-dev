@@ -56,15 +56,18 @@ function m:HopServer()
     end
 end
 
+-- Table to track active loops
+local activeLoops = {}
+
 function m:MakeLoop(_isEnableFunc, _func)
-    coroutine.wrap(function()
+    local loop = coroutine.create(function()
         local lastCheck = 0
         local checkInterval = 5 -- Check config every 5 seconds instead of every 0.1 seconds
 
-		while true do
+        while true do
             local currentTime = tick()
             local isEnabled = false
-            
+
             -- Only check config periodically to reduce overhead
             if currentTime - lastCheck >= checkInterval then
                 -- Handle both function and direct value
@@ -75,15 +78,28 @@ function m:MakeLoop(_isEnableFunc, _func)
                 end
                 lastCheck = currentTime
             end
-            
-			if not isEnabled then
+
+            if not isEnabled then
                 task.wait(5) -- Longer wait when disabled
-                continue 
+                continue
             end
-            
-			_func()
+
+            _func()
             task.wait(3) -- Longer wait between executions (was 0.1, now 3 seconds)
-		end
-	end)()
+        end
+    end)
+
+    table.insert(activeLoops, loop)
+    coroutine.resume(loop)
+    return loop
+end
+
+function m:StopAllLoops()
+    for _, loop in ipairs(activeLoops) do
+        if loop and coroutine.status(loop) ~= "dead" then
+            coroutine.close(loop)
+        end
+    end
+    table.clear(activeLoops)
 end
 return m

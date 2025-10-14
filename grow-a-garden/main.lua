@@ -61,16 +61,20 @@ local window = EzUI:CreateNew({
     FileName = "settings",
 })
 
+-- Update window close callback
 window:SetCloseCallback(function()
-	print("window is closing! Performing cleanup...")
-	
+    print("window is closing! Performing cleanup...")
+
     -- Remove Anti-AFK connections
     PlayerModule:RemoveAntiAFK()
-    
+
     -- Stop all queued tasks
     PlayerModule:ClearQueue()
 
-	print("Cleanup completed!")
+    -- Stop all active loops
+    CoreModule:StopAllLoops()
+
+    print("Cleanup completed!")
 end)
 
 petTeamsConfig = EzUI:NewConfig({

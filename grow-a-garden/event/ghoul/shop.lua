@@ -71,10 +71,6 @@ function m:GetStock(shopName, itemName)
     stock = shopData.EventShopStock[shopName].Stocks[itemName] or 0
 
     if type(stock) ~= "number" then
-        warn("Invalid stock data for item:", itemName, " Stock: ", stock.Stock)
-        for key, value in pairs(stock) do
-            print(key, value)
-        end
         return stock.Stock or 0
     end
 
@@ -111,7 +107,6 @@ function m:StartAutoBuySpookySeeds()
         local stock = self:GetStock(merchant, itemName) or 0
 
         if stock <= 0 then
-            warn("Item out of stock:", itemName)
             continue
         end
 
@@ -137,7 +132,6 @@ function m:StartAutoBuyCreepyCritters()
         local stock = self:GetStock(merchant, itemName) or 0
 
         if stock <= 0 then
-            warn("Item out of stock:", itemName)
             continue
         end
 
@@ -163,7 +157,6 @@ function m:StartAutoBuyDevilishDecor()
         local stock = self:GetStock(merchant, itemName) or 0
 
         if stock <= 0 then
-            warn("Item out of stock:", itemName)
             continue
         end
 

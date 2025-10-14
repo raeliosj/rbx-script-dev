@@ -18,6 +18,12 @@ function m:Init(_core, _player, _window, _garden, _petTeam)
     end, function()
         self:AutoBoostSelectedPets()
     end)
+
+    Core:MakeLoop(function()
+        return Window:GetConfigValue("AutoNightmareMutation")
+    end, function()
+        self:AutoNightmareMutation()
+    end)
 end
 
 function m:GetPetReplicationData()
@@ -284,16 +290,13 @@ function m:BoostSelectedPets()
         end
 
         local boostingPetTask = function(_petIDs, _boostType, _boostAmount, _boostTool)
-            print("🚀 Starting boost task for tool:", _boostTool.Name)
             for _, petID in pairs(_petIDs) do
                 local isEligible = self:EligiblePetUseBoost(petID, _boostType, _boostAmount)
 
                 if not isEligible then
-                    print("🐾 Skipping pet (not eligible for boost):", petID)
                     continue
                 end
 
-                print("🐾 Boosting pet:", petID, "with", _boostType, "amount:", _boostAmount)
                 self:BoostPet(petID)
                 task.wait(0.15)
             end
@@ -352,7 +355,6 @@ function m:AutoBoostSelectedPets()
     end
 
     if not hasEligiblePet then
-        print("No eligible pets found for boosting.")
         return
     end
 
@@ -396,7 +398,6 @@ function m:BoostAllActivePets()
         end
 
         local boostingPetCallback = function()
-            print("🚀 Boost task completed for tool:", tool.Name)
             isTaskCompleted = true
         end
         
@@ -413,10 +414,8 @@ function m:BoostAllActivePets()
 
         -- Wait until task is completed
         while isTaskCompleted == false do
-            print("⏳ Waiting for boost task to complete...")
-            task.wait(2)
+            task.wait(1)
         end
-        print("✅ Boost task finished, moving to next tool")
     end
 end
 
@@ -450,6 +449,15 @@ function m:GetPetDetail(_petID)
         return nil
     end
 
+    local isActive = false
+    local activePets = self:GetAllActivePets() or {}
+    for petID, _ in pairs(activePets) do
+        if petID == _petID then
+            isActive = true
+            break
+        end
+    end
+
     local mutationType = petDetail.MutationType or ""
     local mutation = ""
         if petMutationRegistry and petMutationRegistry.EnumToPetMutation then
@@ -463,6 +471,7 @@ function m:GetPetDetail(_petID)
         BaseWeight = petDetail.BaseWeight or 1,
         Age = petDetail.Level or 0,
         IsFavorited = petDetail.IsFavorited or false,
+        IsActive = isActive,
         Mutation = mutation
     }
 end
@@ -654,6 +663,168 @@ function m:SellPet()
     
     if corePetTeam then
         self:ChangeTeamPets(corePetTeam)
+    end
+end
+
+function m:GetModelPet(_petID)
+        if not _petID then
+        warn("Invalid pet ID provided")
+        return nil
+    end
+
+    -- Cari di semua descendant
+    for _, petMover in ipairs(workspace.PetsPhysical:GetChildren()) do
+        local modelPet = petMover:FindFirstChild(_petID)
+        if modelPet then
+            print("Model ditemukan:", modelPet)
+            return modelPet
+        end
+    end
+
+    print("Model tidak ditemukan")
+    return nil
+end
+
+function m:CleansingMutation(_petID)
+    print("🐾 Cleansing mutation for pet ID:", _petID)
+    if not _petID then
+        warn("Invalid pet ID provided")
+        return false
+    end
+
+    local cleansingTool
+    for _, tool in next, Player:GetAllTools() do
+        local toolName = tool:GetAttribute("u")
+
+        if toolName == "Cleansing Pet Shard" then
+            cleansingTool = tool or nil
+            break
+        end
+    end
+
+    if not cleansingTool then
+        warn("No cleansing tool found")
+        return false
+    end
+
+    local isTaskCompleted = false
+    local cleansingTask = function(_petID)
+        print("🐾 Applying cleansing shard to pet ID:", _petID)
+        local petMover = self:GetModelPet(_petID)
+        if not petMover then
+            warn("PetMover not found for pet ID:", _petID)
+            return
+        end
+
+        print("Firing ApplyShard for pet ID:", _petID, "Mover:", petMover)
+        local success, error = pcall(function()
+            Core.GameEvents.PetShardService_RE:FireServer(
+                "ApplyShard",
+                petMover
+            )
+        end)
+
+        if not success then
+            warn("Failed to apply cleansing shard:", error)
+        end
+        task.wait(1) -- Wait to ensure server processes the shard application
+    end
+
+    local cleansingCallback = function()
+        isTaskCompleted = true
+    end
+
+    Player:AddToQueue(
+        cleansingTool,               -- tool
+        10,                  -- priority (high)
+        function()
+            cleansingTask(_petID)
+        end,    -- task function
+        function()
+            cleansingCallback()
+        end -- callback function
+    )
+
+    return true
+end
+
+function m:AutoNightmareMutation()
+    print("🐾 Checking Auto Nightmare Mutation settings...")
+    local autoNightmareMutation = Window:GetConfigValue("AutoNightmareMutation") or false
+    if not autoNightmareMutation then
+        print("Auto Nightmare Mutation is disabled.")
+        return
+    end
+
+    local petIDs = Window:GetConfigValue("NightmareMutationPets") or {}
+    if #petIDs == 0 then
+        print("No pets selected for Nightmare Mutation.")
+        return
+    end
+
+    local isPetIDAlreadyNightmare = ""
+    local isNoActivePet = true
+
+    for _, petID in pairs(petIDs) do
+        print("Checking pet for Nightmare Mutation:", petID)
+        local petDetail = self:GetPetDetail(petID)
+        if not petDetail then
+            warn("Pet detail not found for UUID:", petID)
+            continue
+        end
+
+        print("Pet detail:", self:SerializePet(petDetail))
+        if not petDetail.IsActive then
+            print("Pet is not active, skipping Nightmare Mutation:", petDetail.Name)
+            continue
+        end
+
+        isNoActivePet = false
+        
+        if petDetail.Mutation == "" then
+            print("Pet has no mutation, skipping Cleansing Mutation:", petDetail.Name)
+            continue
+        end
+
+        print("Checking mutation pet:", petDetail.Name)
+        if petDetail.Mutation == "Nightmare" then
+            print("Pet already has Nightmare mutation, skipping:", petDetail.Name)
+            isPetIDAlreadyNightmare = petID
+            break
+        end
+
+        print("Cleansing mutation for pet:", petDetail.Name)
+        local success = self:CleansingMutation(petID)
+        if not success then
+            warn("Failed to cleanse mutation for pet:", petDetail.Name)
+            continue
+        end
+    end
+
+    if isPetIDAlreadyNightmare ~= "" then
+        print("At least one selected pet already has Nightmare mutation. Aborting process.")
+        
+        self:UnequipPet(isPetIDAlreadyNightmare)
+        task.wait(1)
+
+        -- Remove from selected pets to avoid reprocessing
+        for index, id in ipairs(petIDs) do
+            if id == isPetIDAlreadyNightmare then
+                table.remove(petIDs, index)
+                break
+            end
+        end
+
+        Window:SetConfigValue("NightmareMutationPets", petIDs)
+
+        self:EquipPet(petIDs[1])
+        task.wait(1)
+        print("Equipped pet for Nightmare Mutation:", petIDs[1])
+    end
+    
+    if isNoActivePet then
+        print("No active pet found. Equipping the first selected pet:", petIDs[1])
+        self:EquipPet(petIDs[1])
     end
 end
 

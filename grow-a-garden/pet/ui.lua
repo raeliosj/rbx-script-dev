@@ -25,6 +25,7 @@ function m:CreatePetTab()
     self:AddEggsSection(tab)
     self:AddSellSection(tab)
     self:BoostPetsSection(tab)
+    self:AutoNightmareMutationSection(tab)
 end
 
 function m:AddPetTeamsSection(tab)
@@ -441,6 +442,88 @@ function m:BoostPetsSection(tab)
         Callback = function(value)
             if value then
                 Pet:AutoBoostSelectedPets()
+            end
+        end
+    })
+end
+
+function m:AutoNightmareMutationSection(tab)
+    local accordion = tab:AddAccordion({
+        Title = "Nightmare Mutation",
+        Icon = "🌑",
+        Expanded = false,
+    })
+
+    accordion:AddSelectBox({
+        Name = "Target Pets for Nightmare Mutation",
+        Options = {"Loading..."},
+        Placeholder = "Select Pet Team...",
+        MultiSelect = true,
+        Flag = "NightmareMutationPets",
+        OnInit = function(api, optionsData)
+            local pets = Pet:GetAllMyPets()
+            local currentOptionsSet = {}
+
+            for _, pet in pairs(pets) do
+                table.insert(currentOptionsSet, {text = Pet:SerializePet(pet), value = pet.ID})
+            end
+            optionsData.updateOptions(currentOptionsSet)
+        end,
+        OnDropdownOpen = function(currentOptions, updateOptions)
+            local pets = Pet:GetAllMyPets()
+            local currentOptionsSet = {}
+
+            print("Total my pets:", #pets) -- Debug print
+
+            for _, pet in pairs(pets) do
+                print("Pet ID:", pet.ID) -- Debug print
+                print("Type:", pet.Type, "Name:", pet.Name, "Age:", pet.Age, "Weight:", pet.BaseWeight, "Mutation:", pet.Mutation) -- Debug print
+                print("-----")
+
+                table.insert(currentOptionsSet, {text = Pet:SerializePet(pet), value = pet.ID})
+            end
+            updateOptions(currentOptionsSet)
+        end
+    })
+
+     accordion:AddSelectBox({
+        Name = "Select Headless Horseman Team",
+        Options = {"Loading..."},
+        Placeholder = "Select Headless Horseman Team...",
+        MultiSelect = false,
+        Flag = "headlessHorsemanTeam",
+        OnInit = function(api, optionsData)
+            local listTeamPet = PetTeam:GetAllPetTeams()
+            local currentOptionsSet = {}
+
+            for _, team in pairs(listTeamPet) do
+                table.insert(currentOptionsSet, {text = team, value = team})
+            end
+            optionsData.updateOptions(currentOptionsSet)
+        end,
+        OnDropdownOpen = function(currentOptions, updateOptions)
+            local listTeamPet = PetTeam:GetAllPetTeams()
+            local currentOptionsSet = {}
+            
+            for _, team in pairs(listTeamPet) do
+                table.insert(currentOptionsSet, {text = team, value = team})
+            end
+                    
+            updateOptions(currentOptionsSet)
+        end
+    })
+
+    accordion:AddButton({Text = "Debug", Callback = function()
+        Pet:GetPetModel()
+    end})
+
+    accordion:AddToggle({
+        Name = "Auto Nightmare Mutation",
+        Default = false,
+        Flag = "AutoNightmareMutation",
+        Callback = function(value)
+            if value then
+                Pet:StartAutoNightmareMutation()
             end
         end
     })
