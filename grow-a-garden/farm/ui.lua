@@ -20,6 +20,7 @@ function m:CreateFarmTab()
     self:AddPlantingSection(tab)
     self:AddWateringSection(tab)
     self:AddHarvestingSection(tab)
+    self:AddMovingSection(tab)
 end
 
 function m:AddPlantingSection(tab)
@@ -178,6 +179,45 @@ function m:AddHarvestingSection(tab)
             end
         end,
     })
+end
+
+function m:AddMovingSection(tab)
+    local accordion = tab:AddAccordion({
+        Title = "Move Plants",
+        Icon = "🚜",
+        Expanded = false,
+    })
+
+    accordion:AddSelectBox({
+        Name = "Select plant to move",
+        Flag = "PlantToMove",
+        MultiSelect = false,
+        Placeholder = "Select plant...",
+       OnInit = function(api, optionsData)
+            local plants = Plant:GetPlantRegistry()
+            local formattedPlants = {}
+            for _, plantData in pairs(plants) do
+                table.insert(formattedPlants, {
+                    text = plantData.plant,
+                    value = plantData.plant,
+                })
+            end
+            optionsData.updateOptions(formattedPlants)
+        end,
+    })
+
+    accordion:AddSelectBox({
+        Name = "Select destination",
+        Flag = "MoveDestination",
+        Options = {"Front Right", "Front Left", "Back Right", "Back Left"},
+        Default = "Front Right",
+        MultiSelect = false,
+        Placeholder = "Select destination...",
+    })
+
+    accordion:AddButton({Text = "Move Plant", Callback = function()
+        Plant:MovePlant()
+    end})
 end
 
 return m

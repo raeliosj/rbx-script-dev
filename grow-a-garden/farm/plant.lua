@@ -467,5 +467,92 @@ function m:StartAutoHarvesting()
     end
 end
 
+function m:MovePlant()
+    local plantToMove = Window:GetConfigValue("PlantToMove")
+    if not plantToMove or type(plantToMove) ~= "string" then
+        warn("Invalid plant selected for moving")
+        return
+    end
+    local moveDestination = Window:GetConfigValue("MoveDestination")
+    if not moveDestination or type(moveDestination) ~= "string" then
+        warn("Invalid move destination selected")
+        return
+    end
 
+    local plants = self:FindPlants(plantToMove) or {}
+
+    if #plants == 0 then
+        warn("No plants found to move")
+        return
+    end
+
+    local position = Garden:GetFarmRandomPosition()
+    if moveDestination == "Front Right" then
+        position = Garden:GetFarmFrontRightPosition()
+    elseif moveDestination == "Front Left" then
+        position = Garden:GetFarmFrontLeftPosition()
+    elseif moveDestination == "Back Right" then
+        position = Garden:GetFarmBackRightPosition()
+    elseif moveDestination == "Back Left" then
+        position = Garden:GetFarmBackLeftPosition()
+    end
+    if not position then
+        warn("Failed to get farm position for moving")
+        return
+    end
+
+    local trowel
+    for _, Tool in next, Player:GetAllTools() do
+        local toolType = Tool:GetAttribute("b")
+        if toolType == "b" then
+            trowel = Tool
+            break
+        end
+    end
+    if not trowel then
+        warn("No trowel found in inventory")
+        return
+    end
+
+    local moveTask = function(plants, position)
+        for _, plant in pairs(plants) do
+            if not plant or not plant:IsA("Model") then
+                continue
+            end
+
+            local success = pcall(function()
+                Core.GameEvents.TrowelRemote:InvokeServer(
+                    "Pickup",
+                    trowel,
+                    plant
+                )
+            end)
+
+            if success then
+                task.wait(0.5) -- Small delay between moves
+            end
+
+            local successPlace = pcall(function()
+                Core.GameEvents.TrowelRemote:InvokeServer(
+                    "Place",
+                    trowel,
+                    plant,
+                    CFrame.new(position.X, 0.5, position.Z)
+                )
+            end)
+
+            if not successPlace then
+                warn("Failed to place plant:", plant.Name)
+            end
+        end
+    end
+
+    Player:AddToQueue(
+        trowel,     -- tool
+        10,          -- priority (high)
+        function()
+            moveTask(plants, position)
+        end
+    )
+end
 return m
