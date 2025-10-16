@@ -7,6 +7,8 @@ local Garden
 local PetTeam
 local Webhook
 
+m.CurrentPetTeam = "core"
+
 function m:Init(_core, _player, _window, _garden, _petTeam, _webhook)
     Core = _core
     Player = _player
@@ -25,6 +27,12 @@ function m:Init(_core, _player, _window, _garden, _petTeam, _webhook)
         return Window:GetConfigValue("AutoNightmareMutation")
     end, function()
         self:AutoNightmareMutation()
+    end)
+
+    Core:MakeLoop(function()
+        return Window:GetConfigValue("AutoLevelingPets")
+    end, function()
+        self:StartAutoLeveling()
     end)
 end
 
@@ -160,7 +168,7 @@ function m:UnequipPet(_petID)
 end
 
 
-function m:ChangeTeamPets(_teamName)
+function m:ChangeTeamPets(_teamName, _teamType)
     if not _teamName or _teamName == "" then
         return false
     end
@@ -209,7 +217,9 @@ function m:ChangeTeamPets(_teamName)
 
     -- Final wait to ensure all equips are processed
     task.wait(1)
-    
+
+    self.CurrentPetTeam = _teamType
+
     return true
 end
 
@@ -608,7 +618,7 @@ function m:SellPet()
         print("No pet selected for selling.")
         if corePetTeam then
             print("Reverting to Core Pet Team:", corePetTeam)
-            self:ChangeTeamPets(corePetTeam)
+            self:ChangeTeamPets(corePetTeam, "core")
         end
         return
     end
@@ -651,7 +661,7 @@ function m:SellPet()
     task.wait(0.5) -- Wait for favorites to process
     
     if sellPetTeam then
-        self:ChangeTeamPets(sellPetTeam)
+        self:ChangeTeamPets(sellPetTeam, "sell")
         task.wait(2)
         if boostBeforeSelling then
             self:BoostAllActivePets()
@@ -664,7 +674,7 @@ function m:SellPet()
     task.wait(1) -- Wait for selling to process
     
     if corePetTeam then
-        self:ChangeTeamPets(corePetTeam)
+        self:ChangeTeamPets(corePetTeam, "core")
     end
 end
 
@@ -822,16 +832,100 @@ function m:AutoNightmareMutation()
         end
 
         Window:SetConfigValue("NightmareMutationPets", petIDs)
-
-        self:EquipPet(petIDs[1])
-        task.wait(1)
-        print("Equipped pet for Nightmare Mutation:", petIDs[1])
+        isNoActivePet = true
     end
     
-    if isNoActivePet then
-        print("No active pet found. Equipping the first selected pet:", petIDs[1])
-        self:EquipPet(petIDs[1])
+    if not isNoActivePet then
+        return
     end
+
+    while m.CurrentPetTeam ~= "core" do
+        print("Waiting to switch back to Core Pet Team...")
+        task.wait(1)
+    end
+
+    print("No active pet found. Equipping the first selected pet:", petIDs[1])
+    self:EquipPet(petIDs[1])
+end
+
+function m:StartAutoLeveling()
+    local autoLeveling = Window:GetConfigValue("AutoLevelingPets") or false
+    local levelToReach = Window:GetConfigValue("LevelToReach") or 100
+    
+    if not autoLeveling then
+        print("Auto Leveling is disabled.")
+        return
+    end
+
+    if levelToReach < 1 then
+        print("Invalid level to reach for Auto Leveling:", levelToReach)
+        return
+    end
+
+    local petIDs = Window:GetConfigValue("LevelingPets") or {}
+    if #petIDs == 0 then
+        print("No pets selected for Auto Leveling.")
+        return
+    end
+
+    local isPetIDAlreadyAtTargetLevel = ""
+    local isNoActivePet = true
+
+    for _, petID in pairs(petIDs) do
+        print("Starting Auto Leveling for pet:", petID)
+        local petDetail = self:GetPetDetail(petID)
+        if not petDetail then
+            warn("Pet detail not found for UUID:", petID)
+            continue
+        end
+
+        if not petDetail.IsActive then
+            print("Pet is not active, skipping Auto Leveling:", petDetail.Name)
+            continue
+        end
+
+        isNoActivePet = false
+        if petDetail.Age >= levelToReach then
+            print("Pet already reached the target level, skipping:", petDetail.Name)
+            task.spawn(function() 
+                Webhook:AutoLeveling(petDetail.Type, levelToReach, #petIDs - 1)
+            end)
+            
+            isPetIDAlreadyAtTargetLevel = petID
+            break
+        end
+    end
+
+    if isPetIDAlreadyAtTargetLevel ~= "" then
+        print("At least one selected pet already reached the target level. Aborting process.")
+        
+        self:UnequipPet(isPetIDAlreadyAtTargetLevel)
+        task.wait(1)
+
+        -- Remove from selected pets to avoid reprocessing
+        for index, id in ipairs(petIDs) do
+            if id == isPetIDAlreadyAtTargetLevel then
+                table.remove(petIDs, index)
+                break
+            end
+        end
+
+        Window:SetConfigValue("AutoLevelingPets", petIDs)
+
+        isNoActivePet = true
+    end
+
+    if not isNoActivePet then
+        return
+    end
+
+    while m.CurrentPetTeam ~= "core" do
+        print("Waiting to switch back to Core Pet Team...")
+        task.wait(1)
+    end
+
+    print("No active pet found. Equipping the first selected pet:", petIDs[1])
+    self:EquipPet(petIDs[1])
 end
 
 return m

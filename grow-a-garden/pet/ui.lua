@@ -26,6 +26,7 @@ function m:CreatePetTab()
     self:AddSellSection(tab)
     self:BoostPetsSection(tab)
     self:AutoNightmareMutationSection(tab)
+    self:AutoLevelingSection(tab)
 end
 
 function m:AddPetTeamsSection(tab)
@@ -473,49 +474,12 @@ function m:AutoNightmareMutationSection(tab)
             local pets = Pet:GetAllMyPets()
             local currentOptionsSet = {}
 
-            print("Total my pets:", #pets) -- Debug print
-
             for _, pet in pairs(pets) do
-                print("Pet ID:", pet.ID) -- Debug print
-                print("Type:", pet.Type, "Name:", pet.Name, "Age:", pet.Age, "Weight:", pet.BaseWeight, "Mutation:", pet.Mutation) -- Debug print
-                print("-----")
-
                 table.insert(currentOptionsSet, {text = Pet:SerializePet(pet), value = pet.ID})
             end
             updateOptions(currentOptionsSet)
         end
     })
-
-     accordion:AddSelectBox({
-        Name = "Select Headless Horseman Team",
-        Options = {"Loading..."},
-        Placeholder = "Select Headless Horseman Team...",
-        MultiSelect = false,
-        Flag = "headlessHorsemanTeam",
-        OnInit = function(api, optionsData)
-            local listTeamPet = PetTeam:GetAllPetTeams()
-            local currentOptionsSet = {}
-
-            for _, team in pairs(listTeamPet) do
-                table.insert(currentOptionsSet, {text = team, value = team})
-            end
-            optionsData.updateOptions(currentOptionsSet)
-        end,
-        OnDropdownOpen = function(currentOptions, updateOptions)
-            local listTeamPet = PetTeam:GetAllPetTeams()
-            local currentOptionsSet = {}
-            
-            for _, team in pairs(listTeamPet) do
-                table.insert(currentOptionsSet, {text = team, value = team})
-            end
-                    
-            updateOptions(currentOptionsSet)
-        end
-    })
-
-    accordion:AddButton({Text = "Debug", Callback = function()
-        Pet:GetPetModel()
-    end})
 
     accordion:AddToggle({
         Name = "Auto Nightmare Mutation",
@@ -524,6 +488,61 @@ function m:AutoNightmareMutationSection(tab)
         Callback = function(value)
             if value then
                 Pet:StartAutoNightmareMutation()
+            end
+        end
+    })
+end
+
+function m:AutoLevelingSection(tab)
+    local accordion = tab:AddAccordion({
+        Title = "Auto Leveling",
+        Icon = "⬆️",
+        Expanded = false,
+    })
+
+    accordion:AddSelectBox({
+        Name = "Pets Use for Auto Leveling",
+        Options = {"Loading..."},
+        Placeholder = "Select Pet Team...",
+        MultiSelect = true,
+        Flag = "LevelingPets",
+        OnInit = function(api, optionsData)
+            local pets = Pet:GetAllMyPets()
+            local currentOptionsSet = {}
+
+            for _, pet in pairs(pets) do
+                table.insert(currentOptionsSet, {text = Pet:SerializePet(pet), value = pet.ID})
+            end
+            optionsData.updateOptions(currentOptionsSet)
+        end,
+        OnDropdownOpen = function(currentOptions, updateOptions)
+            local pets = Pet:GetAllMyPets()
+            local currentOptionsSet = {}
+
+            for _, pet in pairs(pets) do
+                table.insert(currentOptionsSet, {text = Pet:SerializePet(pet), value = pet.ID})
+            end
+            updateOptions(currentOptionsSet)
+        end
+    })
+
+    accordion:AddNumberBox({
+        Name = "Level To Reach",
+        Placeholder = "Enter level...",
+        Default = 100,
+        Min = 1,
+        Max = 100,
+        Increment = 1,
+        Flag = "LevelToReach",
+    })
+
+    accordion:AddToggle({
+        Name = "Auto Leveling Pets",
+        Default = false,
+        Flag = "AutoLevelingPets",
+        Callback = function(value)
+            if value then
+                Pet:StartAutoLeveling()
             end
         end
     })

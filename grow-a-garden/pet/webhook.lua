@@ -124,4 +124,31 @@ function m:NightmareMutation(_petType, _remains)
     }
     Discord:SendMessage(url, message)
 end
+
+function m:Leveling(_petName, _petLevel, _remains)
+    local url = Window:GetConfigValue("DiscordWebhookURL") or ""
+    if url == "" then
+        return
+    end
+
+    local message = {
+        content = "",
+        embeds = {{
+            title = "**EzGarden**",
+            type = 'rich',
+            color = tonumber("0x00FF00"),
+            fields = {{
+                name = '**Profile : ** \n',
+                value = '> Username : ||'..PlayerName.."||",
+                inline = false
+            }, {
+                name = "**Pet has reached to level : " ..(_petLevel or"N/A").."**",
+                value = "> Pet Name: ``"..(_petName or"N/A").."``"..
+                       "\n> Remains: ``"..(_remains or"N/A").."``",
+                inline = false
+            }}
+        }}
+    }
+    Discord:SendMessage(url, message)
+end
 return m

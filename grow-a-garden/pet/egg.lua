@@ -293,7 +293,7 @@ function m:HatchEgg()
     local boostBeforeSpecialHatch = Window:GetConfigValue("AutoBoostBeforeSpecialHatch") or false
 
     if hatchPetTeam then
-        Pet:ChangeTeamPets(hatchPetTeam)
+        Pet:ChangeTeamPets(hatchPetTeam, "hatch")
         task.wait(2)
         if boostBeforeHatch then
             Pet:BoostAllActivePets()
@@ -330,7 +330,7 @@ function m:HatchEgg()
     task.wait(1)
 
     if specialHatchPetTeam and #specialHatchingEgg > 0 then
-        Pet:ChangeTeamPets(specialHatchPetTeam)
+        Pet:ChangeTeamPets(specialHatchPetTeam, "special_hatch")
         task.wait(2)
         if boostBeforeSpecialHatch then
             Pet:BoostAllActivePets()
@@ -361,7 +361,7 @@ function m:HatchEgg()
     if isAutoSellAfterHatch then
         Pet:SellPet()
     else
-        Pet:ChangeTeamPets(corePetTeam)
+        Pet:ChangeTeamPets(corePetTeam, "core")
     end
 
     self:PlacingEgg()
