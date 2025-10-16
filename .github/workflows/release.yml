@@ -1,0 +1,79 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., v1.0.0)'
+        required: true
+        default: 'v1.0.0'
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Install lua-bundler
+        run: |
+          curl -fsSL https://alfin-efendy.github.io/lua-bundler/install.sh | sudo bash
+          lua-bundler --version
+          
+      - name: Read deploy.json and obfuscate scripts
+        run: |
+          # Read deploy.json and process each entry
+          for row in $(jq -c '.[]' deploy.json); do
+            entity=$(echo $row | jq -r '.entity')
+            output=$(echo $row | jq -r '.output')
+            
+            echo "Processing: $entity -> output/$output"
+            
+            # Create output directory if it doesn't exist
+            mkdir -p output
+            
+            # Run lua-bundler to obfuscate and bundle the script
+            # Using Level 3 (Heavy) obfuscation with release mode
+            lua-bundler \
+              -e "$entity" \
+              -o "output/$output"
+            
+            echo "✓ Successfully obfuscated $entity to output/$output"
+          done
+
+      - name: Get release version
+        id: get_version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.get_version.outputs.version }}
+          name: EzHub ${{ steps.get_version.outputs.version }}
+          body: |
+             # EzHub Library ${{ steps.get_version.outputs.version }}
+          files: output/*
+          draft: false
+          prerelease: false
+      
+      - name: Checkout target repository
+        uses: actions/checkout@v4
+        with:
+          repository: alfin-efendy/rbx-script
+          token: ${{ secrets.RBX_SCRIPT_DEPLOY }}
+          path: rbx-script
+          fetch-depth: 0
