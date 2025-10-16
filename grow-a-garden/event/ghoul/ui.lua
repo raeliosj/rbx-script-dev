@@ -65,27 +65,6 @@ function m:SeedShopSection(tab)
         end
     })
 
-    accordion:AddButton({
-        Name = "Debug",
-        Callback = function()
-            local itemNames = Window:GetConfigValue("SpookyShopItem")
-            for _, itemName in ipairs(itemNames) do
-                local itemDetails = Shop:GetDetailItem(merchant, itemName)
-                print("Item Details for:", itemName)
-                for key, value in pairs(itemDetails) do
-                    if type(value) == "table" then
-                        value = table.concat(value, ", ")
-                    end
-                    print(key, value)
-                end
-                local stock = Shop:GetStock(merchant, itemName)
-                print("-----")
-
-                print("Current Stock for", itemName, "is:", stock)
-            end
-        end,
-    })
-
     accordion:AddToggle({
         Name = "Auto Buy Spooky Shop Items 🛒",
         Default = false,
@@ -124,27 +103,6 @@ function m:CreepyCrittersSection(tab)
         end
     })
 
-    accordion:AddButton({
-        Name = "Debug",
-        Callback = function()
-            local itemNames = Window:GetConfigValue("CreepyShopItem")
-            for _, itemName in ipairs(itemNames) do
-                local itemDetails = Shop:GetDetailItem(merchant, itemName)
-                print("Item Details for:", itemName)
-                for key, value in pairs(itemDetails) do
-                    if type(value) == "table" then
-                        value = table.concat(value, ", ")
-                    end
-                    print(key, value)
-                end
-                local stock = Shop:GetStock(merchant, itemName)
-                print("-----")
-
-                print("Current Stock for", itemName, "is:", stock)
-            end
-        end,
-    })
-
     accordion:AddToggle({
         Name = "Auto Buy Creepy Shop Items 🛒",
         Default = false,
@@ -181,28 +139,6 @@ function m:DevilishDecorSection(tab)
 
             optionsData.updateOptions(itemNames)
         end
-    })
-
-    accordion:AddButton({
-        Name = "Debug",
-        Callback = function()
-            local itemNames = Window:GetConfigValue("DevilishShopItem")
-            for _, itemName in ipairs(itemNames) do
-                local itemDetails = Shop:GetDetailItem(merchant, itemName)
-                print("Item Details for:", itemName)
-                for key, value in pairs(itemDetails) do
-                    if type(value) == "table" then
-                        value = table.concat(value, ", ")
-                    end
-
-                    print(key, value)
-                end
-                local stock = Shop:GetStock(merchant, itemName)
-                print("-----")
-
-                print("Current Stock for", itemName, "is:", stock)
-            end
-        end,
     })
 
     accordion:AddToggle({

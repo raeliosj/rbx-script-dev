@@ -8,6 +8,7 @@ m.UserInputService = game:GetService("UserInputService")
 m.GuiService = game:GetService("GuiService")
 m.Workspace = game:GetService("Workspace")
 m.VirtualUser = game:GetService("VirtualUser")
+m.MarketplaceService = game:GetService("MarketplaceService")
 m.PlaceId = game.PlaceId
 m.JobId = game.JobId
 

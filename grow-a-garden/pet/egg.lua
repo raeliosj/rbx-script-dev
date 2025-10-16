@@ -205,16 +205,11 @@ function m:PlacingEgg()
 
     local totalOwnedEggs = eggOwnedName:GetAttribute("e") or 0
     local maxEggCanPlace = math.min(totalOwnedEggs, maxEggs)
-    print("🥚 Total egg will be placed:", maxEggCanPlace)
 
     local placeEggTask = function(_maxEggCanPlace, _eggTool, _position, _positionType)
-        print("🥚 Starting egg placement using queue system... already placed:", #self:GetAllPlacedEggs(), "Total to place:", _maxEggCanPlace)
-        print("🔍 Debug - Function parameters:", _maxEggCanPlace, _eggTool and _eggTool.Name or "nil", _position, _positionType)
-
         local attemptCount = 0
 
         while #self:GetAllPlacedEggs() < _maxEggCanPlace do
-            print("🔄 While loop iteration:", attemptCount, "Current eggs placed:", #self:GetAllPlacedEggs(), "Target:", _maxEggCanPlace)
             if Player:GetEquippedTool() ~= _eggTool then
                 Player:EquipTool(_eggTool)
                 task.wait(0.5) -- Small delay to ensure tool is equipped
@@ -240,10 +235,8 @@ function m:PlacingEgg()
                 end
             end)
 
-            print("🔍 Debug - New position calculation:", success, err or "No error", newPosition)
-            print("🥚 Placing egg at:", newPosition)
             Core.GameEvents.PetEggService:FireServer("CreateEgg", newPosition)
-            task.wait(0.5) -- Small delay to avoid spamming
+            task.wait(0.15) -- Small delay to avoid spamming
             
             attemptCount = attemptCount + 1
         end
@@ -257,12 +250,9 @@ function m:PlacingEgg()
             placeEggTask(maxEggCanPlace, eggOwnedName, position, positionType)
         end
     )
-    
-    print("🎉 Egg placement completed! Total eggs:", #self:GetAllPlacedEggs())
 end
 
 function m:HatchEgg()
-    print("Hatching eggs...")
     if #self:GetAllPlacedEggs() == 0 then
         self:PlacingEgg()
         while #self:GetAllPlacedEggs() < 1 do
@@ -271,7 +261,6 @@ function m:HatchEgg()
     end
 
     -- Wait for eggs to be ready using while loop
-    print("⏳ Waiting for eggs to be ready to hatch...")
     while true do
         local readyCount = 0
         local maxTimeToHatch = 0
@@ -289,10 +278,7 @@ function m:HatchEgg()
             end
         end
         
-        print("🥚 Ready eggs:", readyCount, "/", #self:GetAllPlacedEggs())
-
         if readyCount == #self:GetAllPlacedEggs() then
-            print("✅ All eggs are ready to hatch!")
             break
         end
 
@@ -356,7 +342,6 @@ function m:HatchEgg()
         local eggData = self:GetPlacedEggDetail(eggUUID)
         local baseWeight = eggData and eggData.BaseWeight or 1
         local petName = eggData and eggData.Type or "Unknown"
-        print("Hatching special Pet:", petName, "Weight:", baseWeight)
         Core.GameEvents.PetEggService:FireServer("HatchPet", egg)
         task.wait(0.15) -- Small delay to avoid spamming
 

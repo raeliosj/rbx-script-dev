@@ -1,19 +1,23 @@
 local m = {}
 
 local Window
+local Core
 local EggShop
 local SeedShop
 local GearShop
 local SeasonPassShop
 local TravelingShop
+local PremiumShop
 
-function m:Init(_window, _eggShop, _seedShop, _gearShop, _seasonPassShop, _travelingShop)
+function m:Init(_window, _core, _eggShop, _seedShop, _gearShop, _seasonPassShop, _travelingShop, _premiumShop)
     Window = _window
+    Core = _core
     EggShop = _eggShop
     SeedShop = _seedShop
     GearShop = _gearShop
     SeasonPassShop = _seasonPassShop
     TravelingShop = _travelingShop
+    PremiumShop = _premiumShop
 end
 
 function m:CreateShopTab()
@@ -79,6 +83,56 @@ function m:CreateShopTab()
                 SeasonPassShop:BuyAllSeasonPassItems()
             end
         end,
+    })
+
+    self:PremiumShopSection(tab)
+end
+
+function m:PremiumShopSection(tab)
+    local accordion = tab:AddAccordion({
+        Title = "Premium Shop ",
+        Icon = "💎",
+        Expanded = false,
+    })
+
+    accordion:AddSelectBox({
+        Name = "Select Item to Buy 🛒",
+        Options = PremiumShop.ListOfItems,
+        Placeholder = "Select Item",
+        MultiSelect = false,
+        Flag = "PremiumShopItem"
+    })
+
+    accordion:AddTextBox({
+        Name = "Product ID (for custom item)",
+        Default = "",
+        Flag = "PremiumShopProductID",
+        Placeholder = "example: 3322970897",
+        MaxLength = 50,
+        Buttons = {
+            {
+                Text = "Paste 📋",
+                Variant = "primary", 
+                Callback = function(text, textBox)
+                    print("Pasting from clipboard...")
+                    -- text.text = tostring(Core.ClipboardService:GetClipboard())
+                end
+            },
+            {
+                Text = "Clear ✖️",
+                Variant = "destructive", 
+                Callback = function(text, textBox)
+                    text.text = ""
+                end
+            }
+        }
+    })
+
+    accordion:AddButton({
+        Name = "Purchase Item 🛒",
+        Callback = function()
+            PremiumShop:BuyItemWithRobux()
+        end
     })
 end
 
