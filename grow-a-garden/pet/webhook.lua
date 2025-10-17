@@ -132,7 +132,7 @@ function m:Leveling(_petName, _petLevel, _remains)
     end
 
     local message = {
-        content = "",
+        content = pingId ~= "" and ("<@"..pingId..">") or nil,
         embeds = {{
             title = "**EzGarden**",
             type = 'rich',
