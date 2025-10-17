@@ -2,81 +2,110 @@ local m = {}
 
 local Window
 local Core
-local Shop
+
+local ShopData
+local DataService
+local DailyDealsData
 
 local Connections
 local ShopUI = "Seed_Shop"
 local ShopItem = "Carrot"
 
-function m:Init(_window, _core, _shop)
+function m:Init(_window, _core)
     Window = _window
     Core = _core
-    Shop = _shop
 
-    _core:MakeLoop(function()
+    DataService = require(Core.ReplicatedStorage.Modules.DataService)
+    ShopData = require(Core.ReplicatedStorage.Data.SeedShopData)
+    DailyDealsData = require(Core.ReplicatedStorage.Data.DailySeedShopData)
+
+    Core:MakeLoop(function()
         return Window:GetConfigValue("AutoBuySeeds")
     end, function()
-        self:BuyAllSeeds()
+        self:StartAutoBuySeeds()
+    end)
+
+    Core:MakeLoop(function()
+        return Window:GetConfigValue("AutoBuyDailyDeals")
+    end, function()
+        self:StartAutoBuyDailyDeals()
     end)
 end
 
-function m:BuySeed(seedName)
-    if not seedName or seedName == "" then
-        warn("Invalid seed name")
-        return
-    end
-
-    Core.GameEvents.BuySeedStock:FireServer("Tier 1", seedName)
+function m:GetItemRepository()
+    return ShopData or {}
 end
 
-function m:BuyAllSeeds()
-    local items = Shop:GetAvailableItems(ShopUI)
-
-    for seedName, stock in pairs(items) do
-        if stock and stock < 1 then
-            continue
-        end
-
-        for i = 1, stock do
-            self:BuySeed(seedName)
-            task.wait(0.1)
-        end
-    end
+function m:GetItemRepositoryDailyDeals()
+    return DailyDealsData or {}
 end
 
-function m:StartSeedAutomation()
+function m:GetStock(shopName, itemName)
+    local shopData = DataService:GetData()
+    local stock = 0
+    if not shopData then
+        return stock
+    end
+
+    stock = shopData.SeedStocks[shopName].Stocks[itemName] or 0
+
+    if type(stock) ~= "number" then
+        return stock.Stock or 0
+    end
+
+    return stock
+end
+
+function m:GetAvailableItems(shopName)
+    local availableItems = {}
+    local items = {}
+
+    if shopName == "Shop" then
+        items = self:GetItemRepository()
+    elseif shopName == "Daily Deals" then
+        items = self:GetItemRepositoryDailyDeals()
+    end
+
+    for itemName, _ in pairs(items) do
+        local stock = self:GetStock(shopName, itemName)
+        availableItems[itemName] = stock
+    end
+
+    return availableItems
+end
+
+function m:StartAutoBuySeeds()
     if not Window:GetConfigValue("AutoBuySeeds") then
         return
     end
 
-    self:BuyAllSeeds()
+    local ignoreItems = Window:GetConfigValue("IgnoreSeedItems") or {}
 
-    if Connections then
-        for _, conn in pairs(Connections) do
-            conn:Disconnect()
+    for itemName, stock in pairs(self:GetAvailableItems("Shop")) do
+        if stock <= 0 and table.find(ignoreItems, itemName) then
+            continue
         end
-        Connections = nil
-    end
-
-    Connections = {}
-    for _, item in pairs(Shop:GetListItems(ShopUI)) do
-        local conn = Shop:ConnectToStock(item, function()
-            if Window:GetConfigValue("AutoBuySeeds") then
-                return
-            end
-
-            self:BuyAllSeeds()
-        end)
-        table.insert(Connections, conn)
+        
+        for i=1, stock do
+            Core.GameEvents.BuySeedStock:FireServer("Shop", itemName)
+        end
     end
 end
 
-function m:StopSeedAutomation()
-    if Connections then
-        for _, conn in pairs(Connections) do
-            conn:Disconnect()
+function m:StartAutoBuyDailyDeals()
+    if not Window:GetConfigValue("AutoBuyDailyDeals") then
+        return
+    end
+
+    for itemName, stock in pairs(self:GetAvailableItems("Daily Deals")) do
+        print(itemName, stock)
+        if stock <= 0 then
+            continue
         end
-        Connections = nil
+        
+        for i=1, stock do
+            Core.GameEvents.BuyDailySeedShopStock:FireServer(itemName)
+        end
     end
 end
 

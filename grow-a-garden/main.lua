@@ -114,7 +114,7 @@ print("Automation initialized")
 
 -- Shop
 ShopModule:Init(CoreModule)
-ShopSeedModule:Init(window, CoreModule, ShopModule)
+ShopSeedModule:Init(window, CoreModule)
 ShopGearModule:Init(window, CoreModule, ShopModule)
 ShopEggModule:Init(window, CoreModule, ShopModule)
 ShopTravelingModule:Init(window, CoreModule, ShopModule)

@@ -26,18 +26,6 @@ function m:CreateShopTab()
         Icon = "🛍️",
     })
 
-    -- Seed Automation
-    tab:AddToggle({
-        Name = "Auto Buy Seeds 🌱",
-        Default = false,
-        Flag = "AutoBuySeeds",
-        Callback = function(Value)
-            if Value then
-                SeedShop:BuyAllSeeds()
-            end
-        end,
-    })
-
     -- Gear Automation
     tab:AddToggle({
         Name = "Auto Buy Gear 🛠️",
@@ -85,7 +73,56 @@ function m:CreateShopTab()
         end,
     })
 
+    self:SeedShopSection(tab)
     self:PremiumShopSection(tab)
+end
+
+function m:SeedShopSection(tab)
+    local accordion = tab:AddAccordion({
+        Title = "Seed Shop 🌱",
+        Icon = "🌱",
+        Expanded = false,
+    })
+
+    accordion:AddSelectBox({
+        Name = "Select Seeds to Ignore Buying",
+        Options = {"loading ..."},
+        Placeholder = "Select Seeds",
+        MultiSelect = true,
+        Flag = "IgnoreSeedItems",
+        OnInit =  function(api, optionsData)
+            local items = SeedShop:GetItemRepository()
+            local itemNames = {}
+            
+            for itemName, _ in pairs(items) do
+                table.insert(itemNames, itemName)
+            end
+
+            optionsData.updateOptions(itemNames)
+        end
+    })
+
+    accordion:AddToggle({
+        Name = "Auto Buy Seeds 🛒",
+        Default = false,
+        Flag = "AutoBuySeeds",
+        Callback = function(Value)
+            if Value then
+                SeedShop:StartAutoBuySeeds()
+            end
+        end,
+    })
+
+    accordion:AddToggle({
+        Name = "Auto Buy Daily Deals 🛒",
+        Default = false,
+        Flag = "AutoBuyDailyDeals",
+        Callback = function(Value)
+            if Value then
+                SeedShop:StartAutoBuyDailyDeals()
+            end
+        end,
+    })
 end
 
 function m:PremiumShopSection(tab)
