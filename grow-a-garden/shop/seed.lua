@@ -7,10 +7,6 @@ local ShopData
 local DataService
 local DailyDealsData
 
-local Connections
-local ShopUI = "Seed_Shop"
-local ShopItem = "Carrot"
-
 function m:Init(_window, _core)
     Window = _window
     Core = _core
@@ -82,7 +78,7 @@ function m:StartAutoBuySeeds()
     local ignoreItems = Window:GetConfigValue("IgnoreSeedItems") or {}
 
     for itemName, stock in pairs(self:GetAvailableItems("Shop")) do
-        if stock <= 0 and table.find(ignoreItems, itemName) then
+        if stock <= 0 or table.find(ignoreItems, itemName) then
             continue
         end
         
@@ -98,13 +94,13 @@ function m:StartAutoBuyDailyDeals()
     end
 
     for itemName, stock in pairs(self:GetAvailableItems("Daily Deals")) do
-        print(itemName, stock)
         if stock <= 0 then
             continue
         end
         
         for i=1, stock do
             Core.GameEvents.BuyDailySeedShopStock:FireServer(itemName)
+             task.wait(0.15)
         end
     end
 end

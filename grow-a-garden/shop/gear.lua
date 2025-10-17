@@ -2,81 +2,72 @@ local m = {}
 
 local Window
 local Core
-local Shop
 
-local Connections
-local ShopUI = "Gear_Shop"
-local ShopItem = "Watering Can"
+local ShopData
+local DataService
 
-function m:Init(_window, _core, _shop)
+function m:Init(_window, _core)
     Window = _window
     Core = _core
-    Shop = _shop
 
-    _core:MakeLoop(function()
+    DataService = require(Core.ReplicatedStorage.Modules.DataService)
+    ShopData = require(Core.ReplicatedStorage.Data.GearShopData)
+
+    Core:MakeLoop(function()
         return Window:GetConfigValue("AutoBuyGear")
     end, function()
-        self:BuyAllGear()
+        self:StartAutoBuyGear()
     end)
 end
 
-function m:BuyGear(gearName)
-    if not gearName or gearName == "" then
-        warn("Invalid gear name")
-        return
-    end
-
-    Core.GameEvents.BuyGearStock:FireServer(gearName)
+function m:GetItemRepository()
+    return ShopData.Gear or {}
 end
 
-function m:BuyAllGear()
-    local items = Shop:GetAvailableItems(ShopUI)
-
-    for gearName, stock in pairs(items) do
-        if stock < 1 then
-            continue
-        end
-
-        for i = 1, stock do
-            self:BuyGear(gearName)
-            task.wait(0.1)
-        end
+function m:GetStock(itemName)
+    local shopData = DataService:GetData()
+    local stock = 0
+    if not shopData then
+        return stock
     end
+
+    stock = shopData.GearStock.Stocks[itemName] or 0
+
+    if type(stock) ~= "number" then
+        return stock.Stock or 0
+    end
+
+    return stock
 end
 
-function m:StartGearAutomation()
+function m:GetAvailableItems()
+    local availableItems = {}
+    local items = self:GetItemRepository()
+
+    for itemName, _ in pairs(items) do
+        local stock = self:GetStock(itemName)
+        availableItems[itemName] = stock
+    end
+
+    return availableItems
+end
+
+function m:StartAutoBuyGear()
     if not Window:GetConfigValue("AutoBuyGear") then
         return
     end
 
-    self:BuyAllGear()
+    local ignoreItems = Window:GetConfigValue("IgnoreGearItems") or {}
 
-    if Connections then
-        for _, conn in pairs(Connections) do
-            conn:Disconnect()
+    for gearName, stock in pairs(self:GetAvailableItems()) do
+        if stock <= 0 or table.find(ignoreItems, gearName) then
+            continue
         end
-        Connections = nil
-    end
-
-    Connections = {}
-    for _, item in pairs(Shop:GetListItems(ShopUI)) do
-        local conn = Shop:ConnectToStock(item, function()
-            if not Window:GetConfigValue("AutoBuyGear") then
-                return
-            end
-
-            self:BuyAllGear()
-        end)
-        table.insert(Connections, conn)
-    end
-end
-
-function m:StopGearAutomation()
-    if Connections then
-        for _, conn in pairs(Connections) do
-            conn:Disconnect()
+        
+        for i=1, stock do
+            Core.GameEvents.BuyGearStock:FireServer(gearName)
+             task.wait(0.15)
         end
-        Connections = nil
     end
 end
 

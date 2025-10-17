@@ -3,59 +3,73 @@ local m = {}
 local Window
 local Core
 
+local ShopData
+local DataService
+local CurrentSeason
+
 function m:Init(_window, _core)
     Window = _window
     Core = _core
 
+    DataService = require(Core.ReplicatedStorage.Modules.DataService)
+    ShopData = require(Core.ReplicatedStorage.Data.SeasonPass.SeasonPassShopData)
+    local seasonPassData = require(Core.ReplicatedStorage.Data.SeasonPass.SeasonPassData)
+    CurrentSeason = seasonPassData.CurrentSeason or ""
+
     _core:MakeLoop(function()
         return Window:GetConfigValue("AutoBuySeasonPasses")
     end, function()
-        self:BuyAllSeasonPassItems()
+        self:StartBuySeasonPassItems()
     end)
+end
+
+function m:GetItemRepository()
+    return ShopData.ShopItems or {}
+end
+
+function m:GetStock(itemName)
+    local shopData = DataService:GetData()
+    local stock = 0
+    if not shopData then
+        return stock
+    end
+
+    stock = shopData.SeasonPass[CurrentSeason].Stocks[itemName] or 0
+
+    if type(stock) ~= "number" then
+        return stock.Stock or 0
+    end
+
+    return stock
 end
 
 function m:GetAvailableSeasonPassesItems()
     local availableItems = {}
+    local items = self:GetItemRepository()
 
-    local shopUI = Core:GetPlayerGui():FindFirstChild("SeasonPassUI", true)
-    if not shopUI then
-        return availableItems
-    end
-
-    local items = shopUI.SeasonPassFrame.Main.Store.ScrollingFrame.Content:GetChildren()
-    for _, Item in pairs(items) do
-        local MainFrame = Item:FindFirstChild("Main_Frame")
-        if not MainFrame then continue end
-
-        local StockText = MainFrame.Stock_Text.Text
-        local StockCount = tonumber(StockText:match("%d+"))
-        
-        availableItems[Item.Name] = StockCount
+    for itemName, _ in pairs(items) do
+        local stock = self:GetStock(itemName)
+        availableItems[itemName] = stock
     end
 
     return availableItems
 end
 
-function m:BuySeasonPassItem(itemName)
-    if not itemName or itemName == "" then
-        warn("Invalid item name")
+function m:StartBuySeasonPassItems()
+    if not Window:GetConfigValue("AutoBuySeasonPasses") then
         return
     end
+    
+    local ignoreItems = Window:GetConfigValue("IgnoreSeasonPassItems") or {}
 
-    Core.GameEvents.SeasonPass.BuySeasonPassStock:FireServer(itemName)
-end
-
-function m:BuyAllSeasonPassItems()
-    local items = self:GetAvailableSeasonPassesItems()
-
-    for itemName, stock in pairs(items) do
-        if stock < 1 then
+    for itemName, stock in pairs(self:GetAvailableSeasonPassesItems()) do
+        if stock <= 0 or table.find(ignoreItems, itemName) then
             continue
         end
 
-        for i = 1, stock do
-            self:BuySeasonPassItem(itemName)
-            task.wait(0.1) -- Small delay to avoid spamming
+        for i=1, stock do
+            Core.GameEvents.SeasonPass.BuySeasonPassStock:FireServer(itemName)
+             task.wait(0.15)
         end
     end
 end

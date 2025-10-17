@@ -26,30 +26,6 @@ function m:CreateShopTab()
         Icon = "🛍️",
     })
 
-    -- Gear Automation
-    tab:AddToggle({
-        Name = "Auto Buy Gear 🛠️",
-        Default = false,
-        Flag = "AutoBuyGear",
-        Callback = function(Value)
-            if Value then
-                GearShop:BuyAllGear()
-            end
-        end,
-    })
-
-    -- Egg Automation
-    tab:AddToggle({
-        Name = "Auto Buy Eggs 🥚",
-        Default = false,
-        Flag = "AutoBuyEggs",
-        Callback = function(Value)
-            if Value then
-                EggShop:BuyAllEggs()
-            end
-        end,
-    })
-
     tab:AddToggle({
         Name = "Auto Buy Traveling Items 🧳",
         Default = false,
@@ -61,25 +37,16 @@ function m:CreateShopTab()
         end,
     })
 
-    -- Season Pass Automation
-    tab:AddToggle({
-        Name = "Auto Buy Season Pass Items 🎟️",
-        Default = false,
-        Flag = "AutoBuySeasonPasses",
-        Callback = function(Value)
-            if Value then
-                SeasonPassShop:BuyAllSeasonPassItems()
-            end
-        end,
-    })
-
     self:SeedShopSection(tab)
+    self:GearShopSection(tab)
+    self:EggShopSection(tab)
+    self:SeasonPassShopSection(tab)
     self:PremiumShopSection(tab)
 end
 
 function m:SeedShopSection(tab)
     local accordion = tab:AddAccordion({
-        Title = "Seed Shop 🌱",
+        Title = "Seed Shop",
         Icon = "🌱",
         Expanded = false,
     })
@@ -103,7 +70,7 @@ function m:SeedShopSection(tab)
     })
 
     accordion:AddToggle({
-        Name = "Auto Buy Seeds 🛒",
+        Name = "Auto Buy Seeds",
         Default = false,
         Flag = "AutoBuySeeds",
         Callback = function(Value)
@@ -114,7 +81,7 @@ function m:SeedShopSection(tab)
     })
 
     accordion:AddToggle({
-        Name = "Auto Buy Daily Deals 🛒",
+        Name = "Auto Buy Daily Deals",
         Default = false,
         Flag = "AutoBuyDailyDeals",
         Callback = function(Value)
@@ -125,9 +92,120 @@ function m:SeedShopSection(tab)
     })
 end
 
+function m:GearShopSection(tab)
+    local accordion = tab:AddAccordion({
+        Title = "Gear Shop",
+        Icon = "🛠️",
+        Expanded = false,
+    })
+
+    accordion:AddSelectBox({
+        Name = "Select Gear to Ignore Buying",
+        Options = {"loading ..."},
+        Placeholder = "Select Gear",
+        MultiSelect = true,
+        Flag = "IgnoreGearItems",
+        OnInit =  function(api, optionsData)
+            local items = GearShop:GetItemRepository()
+            local itemNames = {}
+            
+            for itemName, _ in pairs(items) do
+                table.insert(itemNames, itemName)
+            end
+
+            optionsData.updateOptions(itemNames)
+        end
+    })
+
+    accordion:AddToggle({
+        Name = "Auto Buy Gear",
+        Default = false,
+        Flag = "AutoBuyGear",
+        Callback = function(Value)
+            if Value then
+                GearShop:StartAutoBuyGear()
+            end
+        end,
+    })
+end
+
+function m:EggShopSection(tab)
+    local accordion = tab:AddAccordion({
+        Title = "Egg Shop",
+        Icon = "🥚",
+        Expanded = false,
+    })
+
+    accordion:AddSelectBox({
+        Name = "Select Eggs to Ignore Buying",
+        Options = {"loading ..."},
+        Placeholder = "Select Eggs",
+        MultiSelect = true,
+        Flag = "IgnoreEggItems",
+        OnInit =  function(api, optionsData)
+            local items = EggShop:GetItemRepository()
+            local itemNames = {}
+            
+            for itemName, _ in pairs(items) do
+                table.insert(itemNames, itemName)
+            end
+
+            optionsData.updateOptions(itemNames)
+        end
+    })
+
+    accordion:AddToggle({
+        Name = "Auto Buy Eggs",
+        Default = false,
+        Flag = "AutoBuyEggs",
+        Callback = function(Value)
+            if Value then
+                EggShop:StartBuyEgg()
+            end
+        end,
+    })
+end
+
+function m:SeasonPassShopSection(tab)
+    local accordion = tab:AddAccordion({
+        Title = "Season Pass Shop",
+        Icon = "🎟️",
+        Expanded = false,
+    })
+
+    accordion:AddSelectBox({
+        Name = "Select Season Pass Items to Ignore Buying",
+        Options = {"loading ..."},
+        Placeholder = "Select Items",
+        MultiSelect = true,
+        Flag = "IgnoreSeasonPassItems",
+        OnInit =  function(api, optionsData)
+            local items = SeasonPassShop:GetItemRepository()
+            local itemNames = {}
+            
+            for itemName, _ in pairs(items) do
+                table.insert(itemNames, itemName)
+            end
+
+            optionsData.updateOptions(itemNames)
+        end
+    })
+
+    accordion:AddToggle({
+        Name = "Auto Buy Season Pass Items",
+        Default = false,
+        Flag = "AutoBuySeasonPasses",
+        Callback = function(Value)
+            if Value then
+                SeasonPassShop:StartBuySeasonPassItems()
+            end
+        end,
+    })
+end
+
 function m:PremiumShopSection(tab)
     local accordion = tab:AddAccordion({
-        Title = "Premium Shop ",
+        Title = "Premium Shop",
         Icon = "💎",
         Expanded = false,
     })

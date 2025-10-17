@@ -2,81 +2,72 @@ local m = {}
 
 local Window
 local Core
-local Shop
 
-local Connections
-local ShopUI = "PetShop_UI"
-local ShopItem = "Common Egg"
+local ShopData
+local DataService
 
-function m:Init(_window, _core, _shop)
+function m:Init(_window, _core)
     Window = _window
     Core = _core
-    Shop = _shop
+    
+
+    DataService = require(Core.ReplicatedStorage.Modules.DataService)
+    ShopData = require(Core.ReplicatedStorage.Data.PetEggData)
 
     _core:MakeLoop(function()
         return Window:GetConfigValue("AutoBuyEggs")
     end, function()
-        self:BuyAllEggs()
+        self:StartBuyEgg()
     end)
 end
 
-function m:BuyEgg(eggName)
-    if not eggName or eggName == "" then
-        warn("Invalid egg name")
-        return
-    end
-
-    Core.GameEvents.BuyPetEgg:FireServer(eggName)
+function m:GetItemRepository()
+    return ShopData or {}
 end
 
-function m:BuyAllEggs()
-     local items = Shop:GetAvailableItems(ShopUI)
+function m:GetStock(itemName)
+    local shopData = DataService:GetData()
+    local stock = 0
+    if not shopData then
+        warn("No shop data found")
+        return stock
+    end
 
-    for eggName, stock in pairs(items) do
-        if stock < 1 then
-            continue
-        end
-
-        for i = 1, stock do
-            self:BuyEgg(eggName)
-            task.wait(0.1) -- Small delay to avoid spamming
+    for _, data in shopData.PetEggStock.Stocks do
+        if data.EggName == itemName then
+            stock = stock + data.Stock
         end
     end
+
+    return stock
 end
 
-function m:StartEggAutomation()
+function m:GetAvailableItems()
+    local availableItems = {}
+    local items = self:GetItemRepository()
+
+    for itemName, _ in pairs(items) do
+        local stock = self:GetStock(itemName)
+        availableItems[itemName] = stock
+    end
+
+    return availableItems
+end
+
+function m:StartBuyEgg()
     if not Window:GetConfigValue("AutoBuyEggs") then
         return
     end
 
-    self:BuyAllEggs()
-
-    if Connections then
-        for _, conn in pairs(Connections) do
-            conn:Disconnect()
+    local ignoreItems = Window:GetConfigValue("IgnoreEggItems") or {}
+    for eggName, stock in pairs(self:GetAvailableItems()) do
+        if stock <= 0 or table.find(ignoreItems, eggName) then
+            continue
         end
-        Connections = nil
-    end
-
-    Connections = {}
-    for _, item in pairs(Shop:GetListItems(ShopUI)) do
-        local conn = Shop:ConnectToStock(item, function()
-            if not Window:GetConfigValue("AutoBuyEggs") then
-                return
-            end
-
-            self:BuyAllEggs()
-        end)
-        table.insert(Connections, conn)
-    end
-end
-
-function m:StopEggAutomation()
-    if Connections then
-        for _, conn in pairs(Connections) do
-            conn:Disconnect()
+        for i=1, stock do
+             Core.GameEvents.BuyPetEgg:FireServer(eggName)
+             task.wait(0.15)
         end
-        Connections = nil
     end
 end
 

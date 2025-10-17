@@ -888,7 +888,7 @@ function m:StartAutoLeveling()
         if petDetail.Age >= levelToReach then
             print("Pet already reached the target level, skipping:", petDetail.Name)
             task.spawn(function() 
-                Webhook:AutoLeveling(petDetail.Type, levelToReach, #petIDs - 1)
+                Webhook:Leveling(petDetail.Type, levelToReach, #petIDs - 1)
             end)
             
             isPetIDAlreadyAtTargetLevel = petID

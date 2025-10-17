@@ -144,7 +144,7 @@ function m:Leveling(_petName, _petLevel, _remains)
             }, {
                 name = "**Pet has reached to level : " ..(_petLevel or"N/A").."**",
                 value = "> Pet Name: ``"..(_petName or"N/A").."``"..
-                       "\n> Remains: ``"..(_remains or"N/A").."``",
+                       "\n> Remains Queue: ``"..(_remains or"N/A").."``",
                 inline = false
             }}
         }}
