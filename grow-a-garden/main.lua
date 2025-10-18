@@ -14,6 +14,7 @@ local FarmUI = require('farm/ui.lua')
 
 -- Quest module
 local AscensionModule = require('quest/ascension.lua')
+local SeasonPassModule = require('quest/season_pass.lua')
 local QuestUI = require('quest/ui.lua')
 
 -- Shop modules
@@ -114,6 +115,7 @@ ShopUI:Init(window, CoreModule, ShopEggModule, ShopSeedModule, ShopGearModule, S
 
 -- Quest
 AscensionModule:Init(window, CoreModule, PlantModule, PlayerModule)
+SeasonPassModule:Init(window, CoreModule)
 QuestUI:Init(window, CoreModule, AscensionModule)
 
 -- Inventory

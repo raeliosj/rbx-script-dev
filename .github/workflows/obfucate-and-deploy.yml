@@ -40,7 +40,8 @@ jobs:
             # Using Level 3 (Heavy) obfuscation with release mode
             lua-bundler \
               -e "$entity" \
-              -o "output/$output"
+              -o "output/$output" \
+              --release
             
             echo "✓ Successfully obfuscated $entity to output/$output"
           done

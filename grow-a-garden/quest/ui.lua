@@ -27,8 +27,8 @@ function m:CreateQuestTab()
         Icon = "📜",
     })
 
-    -- Ascension
     self:AscensionSection(tab)
+    self:SeasonPassSection(tab)
 end
 
 local function getTimeRemaining()
@@ -97,6 +97,28 @@ function m:AscensionSection(tab)
         Default = false,
         Flag = "AutoAscend",
         Tooltip = "Automatically ascend when the option is available.",
+    })
+end
+
+function m:SeasonPassSection(tab)
+    local accordion = tab:AddAccordion({
+        Name = "Season Pass",
+        Icon = "🎟️",
+        Expanded = false,
+    })
+
+    accordion:AddToggle({
+        Name = "Auto Claim Infinity Rewards",
+        Default = false,
+        Flag = "AutoClaimSeasonPassInfinityRewards",
+        Tooltip = "Automatically claim season pass infinity rewards.",
+    })
+
+    accordion:AddToggle({
+        Name = "Auto Claim Completed Quests",
+        Default = false,
+        Flag = "AutoClaimSeasonPassQuest",
+        Tooltip = "Automatically claim completed season pass quests.",
     })
 end
 
