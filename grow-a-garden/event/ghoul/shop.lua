@@ -137,7 +137,7 @@ function m:StartAutoBuyCreepyCritters()
             continue
         end
 
-        local itemDetail = self:GetDetailItem(itemName)
+        local itemDetail = self:GetDetailItem(merchant, itemName)
         if itemDetail and itemDetail.ItemType == "Pet" and shopPetTeam ~= "" and corePetTeam ~= "" then
             petItems[itemName] = stock
             continue
