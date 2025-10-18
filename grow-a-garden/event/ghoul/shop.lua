@@ -2,8 +2,7 @@ local m = {}
 
 local Window
 local Core
-local Shop
-local ShopUI = "EventShop_UI"
+local PetModule
 
 local ShopData
 local DataService
@@ -16,10 +15,10 @@ m.Merchant = {
     "Devilish Decor",
 }
 
-function m:Init(_window, _core, _shop)
+function m:Init(_window, _core, _petModule)
     Window = _window
     Core = _core
-    Shop = _shop
+    PetModule = _petModule
 
     ShopData = require(Core.ReplicatedStorage.Data.EventShopData)
     DataService = require(Core.ReplicatedStorage.Modules.DataService)
@@ -122,6 +121,8 @@ function m:StartAutoBuyCreepyCritters()
     end
 
     local merchant = "Creepy Critters"
+    local corePetTeam = Window:GetConfigValue("CorePetTeam") or ""
+    local shopPetTeam = Window:GetConfigValue("ShopPetTeam") or ""
     local itemNames = Window:GetConfigValue("CreepyShopItem")
     if not itemNames or #itemNames == 0 then
         warn("No items selected for auto-buy")

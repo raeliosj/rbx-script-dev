@@ -8,6 +8,8 @@ function m:Init(_window, _inventory, _pet)
     Window = _window
     Inventory = _inventory
     Pet = _pet
+
+    self:CreateTab()
 end
 
 function m:CreateTab()

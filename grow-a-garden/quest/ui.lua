@@ -18,6 +18,7 @@ function m:Init(_window, _core, _ascension)
     Ascension = _ascension
 
     AscensionItem = Ascension:GetQuestDetail()
+    self:CreateQuestTab()
 end
 
 function m:CreateQuestTab()

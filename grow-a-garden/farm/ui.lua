@@ -9,6 +9,8 @@ function m:init(_window, _player, _garden, _plant)
     Player = _player
     Garden = _garden
     Plant = _plant
+
+    self:CreateFarmTab()
 end
 
 function m:CreateFarmTab()

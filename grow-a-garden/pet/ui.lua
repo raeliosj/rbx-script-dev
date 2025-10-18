@@ -13,6 +13,8 @@ function m:Init(_window, _petTeam, _egg, _pet, _garden, _player)
     Pet = _pet
     Garden = _garden
     Player = _player
+
+    self:CreatePetTab()
 end
 
 function m:CreatePetTab()

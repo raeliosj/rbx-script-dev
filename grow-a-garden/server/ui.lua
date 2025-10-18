@@ -9,6 +9,8 @@ function m:Init(_window, _core, _player, _garden)
     Core = _core
     Player = _player
     Garden = _garden
+
+    self:CreateServerTab()
 end
 
 function m:CreateServerTab()

@@ -5,6 +5,7 @@ local CoreModule = require('../module/core.lua')
 local PlayerModule = require('../module/player.lua')
 local Discord = require('../module/discord.lua')
 local ServerUI = require('server/ui.lua')
+local Rarity = require('rarity.lua')
 
 -- Farm modules
 local GardenModule = require('farm/garden.lua')
@@ -16,7 +17,6 @@ local AscensionModule = require('quest/ascension.lua')
 local QuestUI = require('quest/ui.lua')
 
 -- Shop modules
-local ShopModule = require('shop/shop.lua')
 local ShopSeedModule = require('shop/seed.lua')
 local ShopGearModule = require('shop/gear.lua')
 local ShopEggModule = require('shop/egg.lua')
@@ -64,8 +64,6 @@ local window = EzUI:CreateNew({
 
 -- Update window close callback
 window:SetCloseCallback(function()
-    print("window is closing! Performing cleanup...")
-
     -- Remove Anti-AFK connections
     PlayerModule:RemoveAntiAFK()
 
@@ -74,8 +72,6 @@ window:SetCloseCallback(function()
 
     -- Stop all active loops
     CoreModule:StopAllLoops()
-
-    print("Cleanup completed!")
 end)
 
 petTeamsConfig = EzUI:NewConfig({
@@ -95,8 +91,6 @@ PlayerModule:Init(CoreModule)
 GardenModule:Init(window, CoreModule, PlayerModule)
 PlantModule:Init(window, CoreModule, PlayerModule, GardenModule)
 FarmUI:init(window, PlayerModule, GardenModule, PlantModule)
-FarmUI:CreateFarmTab()
-print("Farm initialized")
 
 -- -- Pet
 PetTeamModule:Init(CoreModule, PlayerModule, window, petTeamsConfig, GardenModule)
@@ -104,47 +98,35 @@ PetWebhook:Init(window, CoreModule, Discord)
 PetModule:Init(CoreModule, PlayerModule, window, GardenModule, PetTeamModule, PetWebhook)
 EggModule:Init(CoreModule, PlayerModule, window, GardenModule, PetModule, PetWebhook)
 PetUI:Init(window, PetTeamModule, EggModule, PetModule, GardenModule, PlayerModule)
-PetUI:CreatePetTab()
-print("Pet initialized")
 
 -- Automation
 CraftingModule:Init(window, CoreModule, PlantModule)
 AutoUI:Init(window, CoreModule, CraftingModule)
-print("Automation initialized")
 
 -- Shop
-ShopModule:Init(CoreModule)
 ShopSeedModule:Init(window, CoreModule)
 ShopGearModule:Init(window, CoreModule)
 ShopEggModule:Init(window, CoreModule)
-ShopTravelingModule:Init(window, CoreModule, ShopModule)
+ShopTravelingModule:Init(window, CoreModule, PetModule)
 ShopSeasonPassModule:Init(window, CoreModule)
 ShopPremiumModule:Init(window, CoreModule)
-ShopUI:Init(window, CoreModule, ShopEggModule, ShopSeedModule, ShopGearModule, ShopSeasonPassModule, ShopTravelingModule, ShopPremiumModule)
-ShopUI:CreateShopTab()
-print("Shop initialized")                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  
+ShopUI:Init(window, CoreModule, ShopEggModule, ShopSeedModule, ShopGearModule, ShopSeasonPassModule, ShopTravelingModule, ShopPremiumModule, PetTeamModule, Rarity)
 
 -- Quest
 AscensionModule:Init(window, CoreModule, PlantModule, PlayerModule)
 QuestUI:Init(window, CoreModule, AscensionModule)
-QuestUI:CreateQuestTab()
-print("Quest initialized")
 
 -- Inventory
 InventoryModule:Init(CoreModule, PlayerModule, window)
 InventoryUI:Init(window, InventoryModule, PetModule)
-InventoryUI:CreateTab()
-print("Inventory initialized")
 
 -- Event
 GhoulQuest:Init(window, CoreModule)
-GhoulShop:Init(window, CoreModule, ShopModule)
+GhoulShop:Init(window, CoreModule)
 GhoulUI:Init(window, GhoulQuest, GhoulShop)
 
 -- Server
 ServerUI:Init(window, CoreModule, PlayerModule, GardenModule)
-ServerUI:CreateServerTab()
-print("Server initialized")
 
 -- -- Notification
 NotificationUI:Init(window, PetWebhook)

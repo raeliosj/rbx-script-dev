@@ -8,8 +8,10 @@ local GearShop
 local SeasonPassShop
 local TravelingShop
 local PremiumShop
+local PetTeam
+local Rarity
 
-function m:Init(_window, _core, _eggShop, _seedShop, _gearShop, _seasonPassShop, _travelingShop, _premiumShop)
+function m:Init(_window, _core, _eggShop, _seedShop, _gearShop, _seasonPassShop, _travelingShop, _premiumShop, _petTeam, _rarity)
     Window = _window
     Core = _core
     EggShop = _eggShop
@@ -18,6 +20,10 @@ function m:Init(_window, _core, _eggShop, _seedShop, _gearShop, _seasonPassShop,
     SeasonPassShop = _seasonPassShop
     TravelingShop = _travelingShop
     PremiumShop = _premiumShop
+    PetTeam = _petTeam
+    Rarity = _rarity
+
+    self:CreateShopTab()
 end
 
 function m:CreateShopTab()
@@ -26,20 +32,39 @@ function m:CreateShopTab()
         Icon = "🛍️",
     })
 
-    tab:AddToggle({
-        Name = "Auto Buy Traveling Items 🧳",
-        Default = false,
-        Flag = "AutoBuyTravelingMerchant",
-        Callback = function(Value)
-            if Value then
-                TravelingShop:BuyAllTravelingItems()
+    tab:AddSelectBox({
+        Name = "Pet Team to Use While Buying Pet Items",
+        Options = {"Loading..."},
+        Placeholder = "Select Pet Team...",
+        MultiSelect = false,
+        Flag = "ShopPetTeam",
+        OnInit = function(api, optionsData)
+            local listTeamPet = PetTeam:GetAllPetTeams()
+            local currentOptionsSet = {}
+            for _, team in pairs(listTeamPet) do
+                table.insert(currentOptionsSet, {text = team, value = team})
             end
+            optionsData.updateOptions(currentOptionsSet)
         end,
+        OnDropdownOpen = function(currentOptions, updateOptions)
+            local listTeamPet = PetTeam:GetAllPetTeams()
+            local currentOptionsSet = {}
+            
+            for _, team in pairs(listTeamPet) do
+                table.insert(currentOptionsSet, {text = team, value = team})
+            end
+                    
+            updateOptions(currentOptionsSet)
+        end
     })
+
+    tab:AddLabel("")
+    tab:AddSeparator()
 
     self:SeedShopSection(tab)
     self:GearShopSection(tab)
     self:EggShopSection(tab)
+    self:TravelingMerchantSection(tab)
     self:SeasonPassShopSection(tab)
     self:PremiumShopSection(tab)
 end
@@ -59,10 +84,31 @@ function m:SeedShopSection(tab)
         Flag = "IgnoreSeedItems",
         OnInit =  function(api, optionsData)
             local items = SeedShop:GetItemRepository()
+            local sortedList = {}
             local itemNames = {}
+
+            for itemName, data in pairs(items) do
+                data._name = itemName
+                table.insert(sortedList, data)
+            end
+
+            table.sort(sortedList, function(a, b)
+                local rarityA = Rarity.RarityOrder[a.Seed.SeedRarity] or 99
+                local rarityB = Rarity.RarityOrder[b.Seed.SeedRarity] or 99
+
+                if rarityA == rarityB then
+                    if a.LayoutOrder == b.LayoutOrder then
+                        return a._name < b._name
+                    else
+                        return a.LayoutOrder < b.LayoutOrder
+                    end
+                end
+
+                return rarityA < rarityB
+            end)
             
-            for itemName, _ in pairs(items) do
-                table.insert(itemNames, itemName)
+            for _, data in pairs(sortedList) do
+                table.insert(itemNames, {text = "[" .. data.Seed.SeedRarity .. "] " .. data._name, value = data._name})
             end
 
             optionsData.updateOptions(itemNames)
@@ -107,10 +153,31 @@ function m:GearShopSection(tab)
         Flag = "IgnoreGearItems",
         OnInit =  function(api, optionsData)
             local items = GearShop:GetItemRepository()
+            local sortedList = {}
             local itemNames = {}
-            
-            for itemName, _ in pairs(items) do
-                table.insert(itemNames, itemName)
+
+            for itemName, data in pairs(items) do
+                data._name = itemName
+                table.insert(sortedList, data)
+            end
+
+            table.sort(sortedList, function(a, b)
+                local rarityA = Rarity.RarityOrder[a.Gear.GearRarity] or 99
+                local rarityB = Rarity.RarityOrder[b.Gear.GearRarity] or 99
+
+                if rarityA == rarityB then
+                    if a.LayoutOrder == b.LayoutOrder then
+                        return a.Name < b.Name
+                    else
+                        return a.LayoutOrder < b.LayoutOrder
+                    end
+                end
+
+                return rarityA < rarityB
+            end)
+
+            for _, data in pairs(sortedList) do
+                table.insert(itemNames, {text = "[" .. data.Gear.GearRarity .. "] " .. data._name, value = data._name})
             end
 
             optionsData.updateOptions(itemNames)
@@ -144,10 +211,30 @@ function m:EggShopSection(tab)
         Flag = "IgnoreEggItems",
         OnInit =  function(api, optionsData)
             local items = EggShop:GetItemRepository()
+            local sortedList = {}
             local itemNames = {}
-            
-            for itemName, _ in pairs(items) do
-                table.insert(itemNames, itemName)
+
+            for _, data in pairs(items) do
+                table.insert(sortedList, data)
+            end
+
+            table.sort(sortedList, function(a, b)
+                local rarityA = Rarity.RarityOrder[a.EggRarity] or 99
+                local rarityB = Rarity.RarityOrder[b.EggRarity] or 99
+
+                if rarityA == rarityB then
+                    if a.LayoutOrder == b.LayoutOrder then
+                        return a.EggName < b.EggName
+                    else
+                        return a.LayoutOrder < b.LayoutOrder
+                    end
+                end
+
+                return rarityA < rarityB
+            end)
+
+            for _, data in pairs(sortedList) do
+                table.insert(itemNames, {text= "[" .. data.EggRarity .. "] " .. data.EggName, value=data.EggName})
             end
 
             optionsData.updateOptions(itemNames)
@@ -161,6 +248,291 @@ function m:EggShopSection(tab)
         Callback = function(Value)
             if Value then
                 EggShop:StartBuyEgg()
+            end
+        end,
+    })
+end
+
+function m:TravelingMerchantSection(tab)
+    local accordion = tab:AddAccordion({
+        Title = "Traveling Merchant Shop",
+        Icon = "🧳",
+        Expanded = false,
+    })
+
+    accordion:AddSelectBox({
+        Name = "Select Fall Merchant Items to Ignore Buying",
+        Options = {"loading ..."},
+        Placeholder = "Select Items",
+        MultiSelect = true,
+        Flag = "IgnoreFallMerchantItems",
+        OnInit =  function(api, optionsData)
+            local items = TravelingShop:GetItemRepository("FallMerchant")
+            local sortedList = {}
+            local itemNames = {}
+
+            for itemName, data in pairs(items) do
+                data._name = itemName
+                table.insert(sortedList, data)
+            end
+
+            table.sort(sortedList, function(a, b)
+                local rarityA = Rarity.RarityOrder[a.SeedRarity] or 99
+                local rarityB = Rarity.RarityOrder[b.SeedRarity] or 99
+
+                if rarityA == rarityB then
+                    if a.LayoutOrder == b.LayoutOrder then
+                        return a._name < b._name
+                    else
+                        return a.LayoutOrder < b.LayoutOrder
+                    end
+                end
+
+                return rarityA < rarityB
+            end)
+
+            for _, data in pairs(sortedList) do
+                table.insert(itemNames, {text= "[" .. data.SeedRarity .. "] " .. data._name .. " (" .. data.ItemType .. ")", value=data._name})
+            end
+            optionsData.updateOptions(itemNames)
+        end
+    })
+
+    accordion:AddSelectBox({
+        Name = "Select Gnome Merchant Items to Ignore Buying",
+        Options = {"loading ..."},
+        Placeholder = "Select Items",
+        MultiSelect = true,
+        Flag = "IgnoreGnomeMerchantItems",
+        OnInit =  function(api, optionsData)
+            local items = TravelingShop:GetItemRepository("GnomeMerchant")
+            local sortedList = {}
+            local itemNames = {}
+
+            for itemName, data in pairs(items) do
+                data._name = itemName
+                table.insert(sortedList, data)
+            end
+
+            table.sort(sortedList, function(a, b)
+                local rarityA = Rarity.RarityOrder[a.SeedRarity] or 99
+                local rarityB = Rarity.RarityOrder[b.SeedRarity] or 99
+
+                if rarityA == rarityB then
+                    if a.LayoutOrder == b.LayoutOrder then
+                        return a._name < b._name
+                    else
+                        return a.LayoutOrder < b.LayoutOrder
+                    end
+                end
+
+                return rarityA < rarityB
+            end)
+
+            for _, data in pairs(sortedList) do
+                table.insert(itemNames, {text= "[" .. data.SeedRarity .. "] " .. data._name .. " (" .. data.ItemType .. ")", value=data._name})
+            end
+            optionsData.updateOptions(itemNames)
+        end
+    })
+
+    accordion:AddSelectBox({
+        Name = "Select Honey Merchant Items to Ignore Buying",
+        Options = {"loading ..."},
+        Placeholder = "Select Items",
+        MultiSelect = true,
+        Flag = "IgnoreHoneyMerchantItems",
+        OnInit =  function(api, optionsData)
+            local items = TravelingShop:GetItemRepository("HoneyMerchant")
+            local sortedList = {}
+            local itemNames = {}
+
+            for itemName, data in pairs(items) do
+                data._name = itemName
+                table.insert(sortedList, data)
+            end
+
+            table.sort(sortedList, function(a, b)
+                local rarityA = Rarity.RarityOrder[a.SeedRarity] or 99
+                local rarityB = Rarity.RarityOrder[b.SeedRarity] or 99
+
+                if rarityA == rarityB then
+                    if a.LayoutOrder == b.LayoutOrder then
+                        return a._name < b._name
+                    else
+                        return a.LayoutOrder < b.LayoutOrder
+                    end
+                end
+
+                return rarityA < rarityB
+            end)
+
+            for _, data in pairs(sortedList) do
+                table.insert(itemNames, {text= "[" .. data.SeedRarity .. "] " .. data._name .. " (" .. data.ItemType .. ")", value=data._name})
+            end
+            optionsData.updateOptions(itemNames)
+        end
+    })
+
+    accordion:AddSelectBox({
+        Name = "Select Sky Merchant Items to Ignore Buying",
+        Options = {"loading ..."},
+        Placeholder = "Select Items",
+        MultiSelect = true,
+        Flag = "IgnoreSkyMerchantItems",
+        OnInit =  function(api, optionsData)
+            local items = TravelingShop:GetItemRepository("SkyMerchant")
+            local sortedList = {}
+            local itemNames = {}
+
+            for itemName, data in pairs(items) do
+                data._name = itemName
+                table.insert(sortedList, data)
+            end
+
+            table.sort(sortedList, function(a, b)
+                local rarityA = Rarity.RarityOrder[a.SeedRarity] or 99
+                local rarityB = Rarity.RarityOrder[b.SeedRarity] or 99
+
+                if rarityA == rarityB then
+                    if a.LayoutOrder == b.LayoutOrder then
+                        return a._name < b._name
+                    else
+                        return a.LayoutOrder < b.LayoutOrder
+                    end
+                end
+
+                return rarityA < rarityB
+            end)
+
+            for _, data in pairs(sortedList) do
+                table.insert(itemNames, {text= "[" .. data.SeedRarity .. "] " .. data._name .. " (" .. data.ItemType .. ")", value=data._name})
+            end
+            optionsData.updateOptions(itemNames)
+        end
+    })
+
+    accordion:AddSelectBox({
+        Name = "Select Spray Merchant Items to Ignore Buying",
+        Options = {"loading ..."},
+        Placeholder = "Select Items",
+        MultiSelect = true,
+        Flag = "IgnoreSprayMerchantItems",
+        OnInit =  function(api, optionsData)
+            local items = TravelingShop:GetItemRepository("SprayMerchant")
+            local sortedList = {}
+            local itemNames = {}
+
+            for itemName, data in pairs(items) do
+                data._name = itemName
+                table.insert(sortedList, data)
+            end
+
+            table.sort(sortedList, function(a, b)
+                local rarityA = Rarity.RarityOrder[a.SeedRarity] or 99
+                local rarityB = Rarity.RarityOrder[b.SeedRarity] or 99
+
+                if rarityA == rarityB then
+                    if a.LayoutOrder == b.LayoutOrder then
+                        return a._name < b._name
+                    else
+                        return a.LayoutOrder < b.LayoutOrder
+                    end
+                end
+
+                return rarityA < rarityB
+            end)
+
+            for _, data in pairs(sortedList) do
+                table.insert(itemNames, {text= "[" .. data.SeedRarity .. "] " .. data._name .. " (" .. data.ItemType .. ")", value=data._name})
+            end
+            optionsData.updateOptions(itemNames)
+        end
+    })
+
+    accordion:AddSelectBox({
+        Name = "Select Sprinkler Merchant Items to Ignore Buying",
+        Options = {"loading ..."},
+        Placeholder = "Select Items",
+        MultiSelect = true,
+        Flag = "IgnoreSprinklerMerchantItems",
+        OnInit =  function(api, optionsData)
+            local items = TravelingShop:GetItemRepository("SprinklerMerchant")
+            local sortedList = {}
+            local itemNames = {}
+
+            for itemName, data in pairs(items) do
+                data._name = itemName
+                table.insert(sortedList, data)
+            end
+
+            table.sort(sortedList, function(a, b)
+                local rarityA = Rarity.RarityOrder[a.SeedRarity] or 99
+                local rarityB = Rarity.RarityOrder[b.SeedRarity] or 99
+
+                if rarityA == rarityB then
+                    if a.LayoutOrder == b.LayoutOrder then
+                        return a._name < b._name
+                    else
+                        return a.LayoutOrder < b.LayoutOrder
+                    end
+                end
+
+                return rarityA < rarityB
+            end)
+
+            for _, data in pairs(sortedList) do
+                table.insert(itemNames, {text= "[" .. data.SeedRarity .. "] " .. data._name .. " (" .. data.ItemType .. ")", value=data._name})
+            end
+            optionsData.updateOptions(itemNames)
+        end
+    })
+
+    accordion:AddSelectBox({
+        Name = "Select Summer Merchant Items to Ignore Buying",
+        Options = {"loading ..."},
+        Placeholder = "Select Items",
+        MultiSelect = true,
+        Flag = "IgnoreSummerMerchantItems",
+        OnInit =  function(api, optionsData)
+            local items = TravelingShop:GetItemRepository("SummerMerchant")
+            local sortedList = {}
+            local itemNames = {}
+
+            for itemName, data in pairs(items) do
+                data._name = itemName
+                table.insert(sortedList, data)
+            end
+
+            table.sort(sortedList, function(a, b)
+                local rarityA = Rarity.RarityOrder[a.SeedRarity] or 99
+                local rarityB = Rarity.RarityOrder[b.SeedRarity] or 99
+
+                if rarityA == rarityB then
+                    if a.LayoutOrder == b.LayoutOrder then
+                        return a._name < b._name
+                    else
+                        return a.LayoutOrder < b.LayoutOrder
+                    end
+                end
+
+                return rarityA < rarityB
+            end)
+
+            for _, data in pairs(sortedList) do
+                table.insert(itemNames, {text= "[" .. data.SeedRarity .. "] " .. data._name .. " (" .. data.ItemType .. ")", value=data._name})
+            end
+            optionsData.updateOptions(itemNames)
+        end
+    })
+
+    accordion:AddToggle({
+        Name = "Auto Buy Traveling Merchant Items",
+        Default = false,
+        Flag = "AutoBuyTravelingMerchant",
+        Callback = function(Value)
+            if Value then
+                TravelingShop:StartBuyTravelingItems()
             end
         end,
     })
@@ -181,10 +553,31 @@ function m:SeasonPassShopSection(tab)
         Flag = "IgnoreSeasonPassItems",
         OnInit =  function(api, optionsData)
             local items = SeasonPassShop:GetItemRepository()
+            local sortedList = {}
             local itemNames = {}
-            
-            for itemName, _ in pairs(items) do
-                table.insert(itemNames, itemName)
+
+            for itemName, data in pairs(items) do
+                data._name = itemName
+                table.insert(sortedList, data)
+            end
+
+            table.sort(sortedList, function(a, b)
+                local rarityA = Rarity.RarityOrder[a.Rarity] or 99
+                local rarityB = Rarity.RarityOrder[b.Rarity] or 99
+
+                if rarityA == rarityB then
+                    if a.LayoutOrder == b.LayoutOrder then
+                        return a._name < b._name
+                    else
+                        return a.LayoutOrder < b.LayoutOrder
+                    end
+                end
+
+                return rarityA < rarityB
+            end)
+
+            for _, data in pairs(sortedList) do
+                table.insert(itemNames, {text= "[" .. data.Rarity .. "] " .. data._name , value=data._name})
             end
 
             optionsData.updateOptions(itemNames)

@@ -167,6 +167,9 @@ function m:UnequipPet(_petID)
     return true
 end
 
+function m:GetCurrentPetTeam()
+    return self.CurrentPetTeam
+end
 
 function m:ChangeTeamPets(_teamName, _teamType)
     if not _teamName or _teamName == "" then
