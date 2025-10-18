@@ -404,10 +404,23 @@ function m:HarvestFruit(_fruit)
     return true
 end
 
+function m:SellAllFruits()
+    local lastPosition = Player:GetPosition()
+    Player:TeleportToPosition(Core.Workspace.Tutorial_Points.Tutorial_Point_2.CFrame.Position)
+    task.wait(0.5) -- Wait before checking again
+    Core.GameEvents.Sell_Inventory:FireServer()
+    task.wait(0.5) -- Wait before checking again
+    Player:TeleportToPosition(lastPosition)
+end
+
 function m:StartAutoHarvesting()
     if Window:GetConfigValue("AutoHarvestPlants") ~= true then
         warn("Auto harvesting is disabled in config")
         return
+    end
+
+    if self:IsMaxInventory() and Window:GetConfigValue("AutoSellFruits") == true then
+        self:SellAllFruits()
     end
 
     if self:IsMaxInventory() then
@@ -423,15 +436,16 @@ function m:StartAutoHarvesting()
     end
 
     local harvestedCount = 0
+    local shouldBreak = false
 
     for _, plantName in pairs(plantsToHarvest) do
+        if shouldBreak then break end
+
         local plants = self:FindPlants(plantName) or {}
 
         -- Harvest with limits
         for _, plant in pairs(plants) do
-            if self:IsMaxInventory() then
-                break
-            end
+            if shouldBreak then break end
 
             local plantDetail = self:GetPlantDetail(plant)
             if not plantDetail or plantDetail.isGrowing then
@@ -440,6 +454,7 @@ function m:StartAutoHarvesting()
 
             for _, fruitDetail in pairs(plantDetail.fruits) do
                 if self:IsMaxInventory() then
+                    shouldBreak = true
                     break
                 end
 
@@ -453,10 +468,6 @@ function m:StartAutoHarvesting()
                     task.wait(0.15) -- Small delay between harvests
                 end
             end
-        end
-
-        if self:IsMaxInventory() then
-            break
         end
     end
 

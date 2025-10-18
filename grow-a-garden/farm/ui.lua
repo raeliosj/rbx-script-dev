@@ -181,6 +181,12 @@ function m:AddHarvestingSection(tab)
             end
         end,
     })
+
+    accordion:AddToggle({
+        Name = "Auto Sell Fruits If Inventory Full 🛒",
+        Default = false,
+        Flag = "AutoSellFruits",
+    })
 end
 
 function m:AddMovingSection(tab)

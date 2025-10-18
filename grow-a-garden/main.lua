@@ -124,7 +124,7 @@ InventoryUI:Init(window, InventoryModule, PetModule)
 
 -- Event
 GhoulQuest:Init(window, CoreModule)
-GhoulShop:Init(window, CoreModule)
+GhoulShop:Init(window, CoreModule, PetModule)
 GhoulUI:Init(window, GhoulQuest, GhoulShop)
 
 -- Server

@@ -124,6 +124,7 @@ function m:StartAutoBuyCreepyCritters()
     local corePetTeam = Window:GetConfigValue("CorePetTeam") or ""
     local shopPetTeam = Window:GetConfigValue("ShopPetTeam") or ""
     local itemNames = Window:GetConfigValue("CreepyShopItem")
+    local petItems = {}
     if not itemNames or #itemNames == 0 then
         warn("No items selected for auto-buy")
         return
@@ -136,10 +137,32 @@ function m:StartAutoBuyCreepyCritters()
             continue
         end
 
+        local itemDetail = self:GetDetailItem(itemName)
+        if itemDetail and itemDetail.ItemType == "Pet" and shopPetTeam ~= "" and corePetTeam ~= "" then
+            petItems[itemName] = stock
+            continue
+        end
+
         for i = 1, stock do
             Core.GameEvents.BuyEventShopStock:FireServer(itemName, merchant)
         end
     end
+
+    if #petItems == 0 then
+        return
+    end
+
+    while PetModule:GetCurrentPetTeam() ~= "core" do
+        task.wait(1)
+    end
+
+    PetModule:ChangeTeamPets(shopPetTeam, "shop")
+    for itemName, stock in pairs(petItems) do
+        for i = 1, stock do
+            Core.GameEvents.BuyEventShopStock:FireServer(itemName, merchant)
+        end
+    end
+    PetModule:ChangeTeamPets(corePetTeam, "core")
 end
 
 function m:StartAutoBuyDevilishDecor()
