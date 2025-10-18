@@ -24,6 +24,7 @@ local ShopEggModule = require('shop/egg.lua')
 local ShopSeasonPassModule = require('shop/season_pass.lua')
 local ShopTravelingModule = require('shop/traveling.lua')
 local ShopPremiumModule = require('shop/premium.lua')
+local ShopCosmeticModule = require('shop/cosmetic.lua')
 local ShopUI = require('shop/ui.lua')
 
 -- -- Pet modules
@@ -106,12 +107,13 @@ AutoUI:Init(window, CoreModule, CraftingModule)
 
 -- Shop
 ShopSeedModule:Init(window, CoreModule)
+ShopCosmeticModule:Init(window, CoreModule)
 ShopGearModule:Init(window, CoreModule)
 ShopEggModule:Init(window, CoreModule)
 ShopTravelingModule:Init(window, CoreModule, PetModule)
 ShopSeasonPassModule:Init(window, CoreModule)
 ShopPremiumModule:Init(window, CoreModule)
-ShopUI:Init(window, CoreModule, ShopEggModule, ShopSeedModule, ShopGearModule, ShopSeasonPassModule, ShopTravelingModule, ShopPremiumModule, PetTeamModule, Rarity)
+ShopUI:Init(window, CoreModule, ShopEggModule, ShopSeedModule, ShopGearModule, ShopSeasonPassModule, ShopTravelingModule, ShopPremiumModule, PetTeamModule, Rarity, ShopCosmeticModule)
 
 -- Quest
 AscensionModule:Init(window, CoreModule, PlantModule, PlayerModule)

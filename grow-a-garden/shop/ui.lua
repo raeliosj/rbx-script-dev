@@ -10,8 +10,9 @@ local TravelingShop
 local PremiumShop
 local PetTeam
 local Rarity
+local CosmeticShop
 
-function m:Init(_window, _core, _eggShop, _seedShop, _gearShop, _seasonPassShop, _travelingShop, _premiumShop, _petTeam, _rarity)
+function m:Init(_window, _core, _eggShop, _seedShop, _gearShop, _seasonPassShop, _travelingShop, _premiumShop, _petTeam, _rarity, _cosmeticShop)
     Window = _window
     Core = _core
     EggShop = _eggShop
@@ -22,6 +23,7 @@ function m:Init(_window, _core, _eggShop, _seedShop, _gearShop, _seasonPassShop,
     PremiumShop = _premiumShop
     PetTeam = _petTeam
     Rarity = _rarity
+    CosmeticShop = _cosmeticShop
 
     self:CreateShopTab()
 end
@@ -62,6 +64,7 @@ function m:CreateShopTab()
     tab:AddSeparator()
 
     self:SeedShopSection(tab)
+    self:CosmeticShopSection(tab)
     self:GearShopSection(tab)
     self:EggShopSection(tab)
     self:TravelingMerchantSection(tab)
@@ -133,6 +136,94 @@ function m:SeedShopSection(tab)
         Callback = function(Value)
             if Value then
                 SeedShop:StartAutoBuyDailyDeals()
+            end
+        end,
+    })
+end
+
+function m:CosmeticShopSection(tab)
+    local accordion = tab:AddAccordion({
+        Title = "Cosmetic Shop",
+        Icon = "🎨",
+        Expanded = false,
+    })
+
+    accordion:AddSelectBox({
+        Name = "Select Cosmetic Items to Ignore Buying",
+        Options = {"loading ..."},
+        Placeholder = "Select Cosmetic Items",
+        MultiSelect = true,
+        Flag = "IgnoreCosmeticItems",
+        OnInit =  function(api, optionsData)
+            local items = CosmeticShop:GetCosmeticItemRepository()
+            local sortedList = {}
+            local itemNames = {}
+
+            for itemName, data in pairs(items) do
+                data._name = itemName
+                table.insert(sortedList, data)
+            end
+
+            table.sort(sortedList, function(a, b)
+                return a._name < b._name
+            end)
+
+            for _, data in pairs(sortedList) do
+                table.insert(itemNames, data._name)
+            end
+
+            optionsData.updateOptions(itemNames)
+        end
+    })
+
+    accordion:AddSelectBox({
+        Name = "Select Crate Items to Ignore Buying",
+        Options = {"loading ..."},
+        Placeholder = "Select Crate Items",
+        MultiSelect = true,
+        Flag = "IgnoreCrateItems",
+        OnInit =  function(api, optionsData)
+            local items = CosmeticShop:GetCrateItemRepository()
+            local sortedList = {}
+            local itemNames = {}
+
+            for itemName, data in pairs(items) do
+                data._name = itemName
+                table.insert(sortedList, data)
+            end
+
+            table.sort(sortedList, function(a, b)
+                return a._name < b._name
+            end)
+
+            for _, data in pairs(sortedList) do
+                table.insert(itemNames, data._name)
+            end
+
+            optionsData.updateOptions(itemNames)
+        end
+    })
+
+    accordion:AddSelectBox({
+        Name = "Select Fence Items to Ignore Buying",
+        Options = {"loading ..."},
+        Placeholder = "Select Fence Items",
+        MultiSelect = true,
+        Flag = "IgnoreFenceItems",
+        OnInit =  function(api, optionsData)
+            local items = CosmeticShop:GetFenceItemRepository()
+
+            optionsData.updateOptions(items)
+        end
+    })
+
+    accordion:AddToggle({
+        Name = "Auto Buy Cosmetic Items",
+        Default = false,
+        Flag = "AutoBuyCosmeticItems",
+        Callback = function(Value)
+            if Value then
+                CosmeticShop:StartAutoBuyCosmeticItems()
             end
         end,
     })
