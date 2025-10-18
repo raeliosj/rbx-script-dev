@@ -100,12 +100,16 @@ end
 function m:NightmareMutation(_petType, _remains)
     local url = Window:GetConfigValue("DiscordWebhookURL") or ""
     local pingId = Window:GetConfigValue("DiscordPingID") or ""
+    _remains = _remains or 0
+
     if url == "" then
         return
     end
 
+    local content = pingId ~= "" and ("<@"..pingId..">") or nil
+
     local message = {
-        content = pingId ~= "" and ("<@"..pingId..">") or nil,
+        content = _remains <= 0 and content,
         embeds = {{
             title = "**EzGarden**",
             type = 'rich',
@@ -127,12 +131,17 @@ end
 
 function m:Leveling(_petName, _petLevel, _remains)
     local url = Window:GetConfigValue("DiscordWebhookURL") or ""
+    local pingId = Window:GetConfigValue("DiscordPingID") or ""
+    _remains = _remains or 0
+
     if url == "" then
         return
     end
 
+    local content = pingId ~= "" and ("<@"..pingId..">") or nil
+    
     local message = {
-        content = pingId ~= "" and ("<@"..pingId..">") or nil,
+        content = _remains <= 0 and content,
         embeds = {{
             title = "**EzGarden**",
             type = 'rich',

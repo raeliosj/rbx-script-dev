@@ -85,7 +85,10 @@ function m:StartAutoClaimRewards()
         return
     end
 
-    game:GetService("ReplicatedStorage").GameEvents.SeasonPass.ClaimSeasonPassInfReward:FireServer(51, false)
+    for i = 1, claimRewardCount do
+        game:GetService("ReplicatedStorage").GameEvents.SeasonPass.ClaimSeasonPassInfReward:FireServer(51, false)
+        task.wait(0.15) -- Wait for 0.15 seconds between claims to avoid spamming
+    end
 end
 
 return m
