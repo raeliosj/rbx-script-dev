@@ -52,6 +52,61 @@ function m:StartAutoSubmitEventPlants()
     LastSubmitTime = tick()
 end
 
+-- function m:StartAutoDigging()
+--     local workspaceChildren = Core.Workspace:GetChildren()
+--     local diggingPath = nil
+
+--     for _, child in ipairs(workspaceChildren) do
+--         if child.Name:match("_DiggingGrid$") then
+--             diggingPath = child
+--             break
+--         end
+--     end
+
+--     if not diggingPath then
+--         return
+--     end
+
+--     local treasure = {}
+--     local digBlocks = {}
+
+--     for _, child in ipairs(diggingPath:GetChildren()) do
+--         if child.Name == "HalloweenIsland" then
+--             continue
+--         end
+
+--         if child.Name == "DigBlock" then
+--             table.insert(digBlocks, child)
+--             continue
+--         end
+
+--         table.insert(treasure, child)
+--     end
+
+--     local halloweenIsland = diggingPath:FindFirstChild("HalloweenIsland")
+--     if halloweenIsland then
+--         for _, child in ipairs(halloweenIsland:GetChildren()) do
+--             table.insert(allChildren, child)
+--         end
+--     end
+
+--     workspace.kicung999_DiggingGrid
+--     workspace.kicung999_DiggingGrid.HalloweenIsland
+--     workspace.kicung999_DiggingGrid:GetChildren()[17]
+
+--     game:GetService("ReplicatedStorage").GameEvents.DiggingMiniGame.DigRemoteEvent:FireServer(table.unpack({
+--         [1] = 2,
+--         [2] = 3,
+--         [3] = CFrame.new(71.9720764, 10032.1885, 13.5591669, 1, -0, 0, 0, 0.528125048, 0.849166632, -0, -0.849166632, 0.528125048),
+--     }))
+
+--     game:GetService("ReplicatedStorage").GameEvents.DiggingMiniGame.DigRemoteEvent:FireServer(table.unpack({
+--         [1] = 6,
+--         [2] = 5,
+--         [3] = CFrame.new(71.9720764, 10032.1885, 13.5591669, 1, -0, 0, 0, 0.528125048, 0.849166632, -0, -0.849166632, 0.528125048),
+--     }))
+-- end
+
 function m:StopAutoSubmitEventPlants()
     if BackpackConnection then
         BackpackConnection:Disconnect()

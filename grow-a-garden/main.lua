@@ -36,6 +36,7 @@ local PetUI = require('pet/ui.lua')
 
 -- Automation modules
 local CraftingModule = require('auto/crafting.lua')
+local CookingModule = require('auto/cooking.lua')
 local AutoUI = require('auto/ui.lua')
 
 -- Inventory modules
@@ -103,7 +104,8 @@ PetUI:Init(window, PetTeamModule, EggModule, PetModule, GardenModule, PlayerModu
 
 -- Automation
 CraftingModule:Init(window, CoreModule, PlantModule)
-AutoUI:Init(window, CoreModule, CraftingModule)
+CookingModule:Init(window, CoreModule, PlayerModule, PlantModule)
+AutoUI:Init(window, CoreModule, CraftingModule, PlantModule, CookingModule)
 
 -- Shop
 ShopSeedModule:Init(window, CoreModule)
