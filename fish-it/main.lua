@@ -7,7 +7,7 @@ local Discord = require('../module/discord.lua')
 
 -- Farm modules
 local FishingModule = require('farm/fishing.lua')
-local SellModule = require('farm/sell.lua')
+local InventoryModule = require('farm/inventory.lua')
 local FarmUI = require('farm/ui.lua')
 
 -- Teleport modules
@@ -77,7 +77,7 @@ NPCModule:Init(window, CoreModule)
 
 -- Farm
 FishingModule:Init(window, CoreModule)
-SellModule:Init(window, CoreModule)
+InventoryModule:Init(window, CoreModule)
 
 -- Auto
 EventsModule:Init(window, CoreModule)
@@ -85,7 +85,7 @@ EventsModule:Init(window, CoreModule)
 -- Misc
 AnimationModule:Init(window, CoreModule)
 
-FarmUI:Init(window, CoreModule, FishingModule, SellModule)
+FarmUI:Init(window, CoreModule, FishingModule, InventoryModule)
 TeleportUI:Init(window, CoreModule, PlayerModule, NPCModule, SpotModule, customPositionConfig, TeleportEvent)
 AutoUI:Init(window, EventsModule)
 MiscUI:Init(window, CoreModule, AnimationModule)
