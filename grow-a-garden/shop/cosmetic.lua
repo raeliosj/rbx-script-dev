@@ -137,11 +137,11 @@ function m:StartAutoBuyCosmeticItems()
 
         for i = 1, details.Stock do
             if details.Category == "Fences" then
-                Core.GameEvents.BuyCosmeticShopFence:FireServer(itemName, details.Tab)
+                Core.ReplicatedStorage.GameEvents.BuyCosmeticShopFence:FireServer(itemName, details.Tab)
             elseif details.Category == "Crates" then
-                Core.GameEvents.BuyCosmeticCrate:FireServer(itemName, details.Tab)
+                Core.ReplicatedStorage.GameEvents.BuyCosmeticCrate:FireServer(itemName, details.Tab)
             else
-                Core.GameEvents.BuyCosmeticItem:FireServer(itemName, details.Tab)
+                Core.ReplicatedStorage.GameEvents.BuyCosmeticItem:FireServer(itemName, details.Tab)
             end
             task.wait(0.15)
         end

@@ -131,7 +131,7 @@ function m:EquipPet(_petID)
             error("Failed to get farm center position")
         end
         
-        Core.GameEvents.PetsService:FireServer(
+        Core.ReplicatedStorage.GameEvents.PetsService:FireServer(
             "EquipPet",
             _petID,
             position
@@ -153,7 +153,7 @@ function m:UnequipPet(_petID)
     end
     
     local success = pcall(function()
-        Core.GameEvents.PetsService:FireServer(
+        Core.ReplicatedStorage.GameEvents.PetsService:FireServer(
             "UnequipPet",
             _petID
         )
@@ -227,7 +227,7 @@ function m:ChangeTeamPets(_teamName, _teamType)
 end
 
 function m:BoostPet(_petID)
-    Core.GameEvents.PetBoostService:FireServer(
+    Core.ReplicatedStorage.GameEvents.PetBoostService:FireServer(
         "ApplyBoost",
         _petID
     )
@@ -656,7 +656,7 @@ function m:SellPet()
         if petWeight >= weighLessThan or petAge >= ageLessThan or not isPetNameMatched then
             print("Skipping pet (does not meet sell criteria):", petName, "| Weight:", petWeight, "| Age:", petAge, "| Is Name Matched:", tostring(isPetNameMatched))
 
-            Core.GameEvents.Favorite_Item:FireServer(tool)
+            Core.ReplicatedStorage.GameEvents.Favorite_Item:FireServer(tool)
             task.wait(0.15)
         end
     end
@@ -673,7 +673,7 @@ function m:SellPet()
 
     task.wait(1) -- Wait before selling
 
-    Core.GameEvents.SellAllPets_RE:FireServer()
+    Core.ReplicatedStorage.GameEvents.SellAllPets_RE:FireServer()
     task.wait(1) -- Wait for selling to process
     
     if corePetTeam then
@@ -733,7 +733,7 @@ function m:CleansingMutation(_petID)
 
         print("Firing ApplyShard for pet ID:", _petID, "Mover:", petMover)
         local success, error = pcall(function()
-            Core.GameEvents.PetShardService_RE:FireServer(
+            Core.ReplicatedStorage.GameEvents.PetShardService_RE:FireServer(
                 "ApplyShard",
                 petMover
             )

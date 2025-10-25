@@ -156,7 +156,7 @@ function m:SetRecipe(craftingStation, craftingItem)
         return
     end
 
-    Core.GameEvents.CraftingGlobalObjectService:FireServer(
+    Core.ReplicatedStorage.GameEvents.CraftingGlobalObjectService:FireServer(
         "SetRecipe",
         craftingStation,
         self:GetCraftingObjectType(craftingStation),
@@ -231,10 +231,10 @@ function m:StartCrafting(craftingStation)
         return
     end
 
-    local OpenRecipeEvent = Core.GameEvents.OpenRecipeBindableEvent
+    local OpenRecipeEvent = Core.ReplicatedStorage.GameEvents.OpenRecipeBindableEvent
 
     local success, error = pcall(function()
-        Core.GameEvents.CraftingGlobalObjectService:FireServer(
+        Core.ReplicatedStorage.GameEvents.CraftingGlobalObjectService:FireServer(
             "Craft",
             craftingStation,
             self:GetCraftingObjectType(craftingStation)
@@ -274,7 +274,7 @@ function m:CraftingController(craftingStation, craftingItem)
 
     if self:GetCraftingStationStatus(craftingStation) == "Ready to Claim" then
         local success, error = pcall(function()
-            Core.GameEvents.CraftingGlobalObjectService:FireServer(
+            Core.ReplicatedStorage.GameEvents.CraftingGlobalObjectService:FireServer(
                 "Claim",
                 craftingStation,
                 self:GetCraftingObjectType(craftingStation),

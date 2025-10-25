@@ -10,7 +10,7 @@ function m:Init(_window, _core)
     Window = _window
     Core = _core
 
-    Core.GameEvents.WitchesBrew.UpdateCauldronVisuals.OnClientEvent:Connect(function(param)
+    Core.ReplicatedStorage.GameEvents.WitchesBrew.UpdateCauldronVisuals.OnClientEvent:Connect(function(param)
         if not param and not param.Percentage then
             return
         end
@@ -43,12 +43,12 @@ function m:StartAutoSubmitEventPlants()
                 return
             end
 
-            Core.GameEvents.WitchesBrew.SubmitItemToCauldron:InvokeServer("All")
+            Core.ReplicatedStorage.GameEvents.WitchesBrew.SubmitItemToCauldron:InvokeServer("All")
             LastSubmitTime = tick()
         end)
     end
 
-    Core.GameEvents.WitchesBrew.SubmitItemToCauldron:InvokeServer("All")
+    Core.ReplicatedStorage.GameEvents.WitchesBrew.SubmitItemToCauldron:InvokeServer("All")
     LastSubmitTime = tick()
 end
 

@@ -136,12 +136,12 @@ function m:StartCooking(cookingPotUUID, ingredients)
             end
 
             -- Submit Ingredient
-            Core.GameEvents.CookingPotService_RE:FireServer("SubmitHeldPlant", _cookingPotUUID)
+            Core.ReplicatedStorage.GameEvents.CookingPotService_RE:FireServer("SubmitHeldPlant", _cookingPotUUID)
             task.wait(0.5)
         end
 
         -- Start Cooking
-        Core.GameEvents.CookingPotService_RE:FireServer("CookBest", _cookingPotUUID)
+        Core.ReplicatedStorage.GameEvents.CookingPotService_RE:FireServer("CookBest", _cookingPotUUID)
     end
 
     local cookingCallback = function()
@@ -194,7 +194,7 @@ function m:StartAutoCooking()
     end
 
     if cookingPotData.FinishedFoodRawData and not cookingPotData.CookingEndTime then
-        Core.GameEvents.CookingPotService_RE:FireServer("GetFoodFromPot", cookingPotUUIDs[1])
+        Core.ReplicatedStorage.GameEvents.CookingPotService_RE:FireServer("GetFoodFromPot", cookingPotUUIDs[1])
         return
     end
 
@@ -212,7 +212,7 @@ function m:StartAutoCooking()
     local unsubmittedItems, hasWrongItems = self:CompareIngredients(submittedIngredients)
     if hasWrongItems then
         -- Clear Ingredients
-        Core.GameEvents.CookingPotService_RE:FireServer("EmptyPot", cookingPotUUIDs[1])
+        Core.ReplicatedStorage.GameEvents.CookingPotService_RE:FireServer("EmptyPot", cookingPotUUIDs[1])
         task.wait(1)
 
         unsubmittedItems = self:CombineIngredientsConfig()

@@ -11,12 +11,10 @@ m.VirtualUser = game:GetService("VirtualUser")
 m.MarketplaceService = game:GetService("MarketplaceService")
 m.PlaceId = game.PlaceId
 m.JobId = game.JobId
+m.IsWindowOpen = false
 
 -- Player reference
 m.LocalPlayer = m.Players.LocalPlayer
-
--- References
-m.GameEvents = m.ReplicatedStorage.GameEvents
 
 -- Dynamic getters
 function m:GetCharacter()
@@ -60,12 +58,14 @@ end
 -- Table to track active loops
 local activeLoops = {}
 
-function m:MakeLoop(_isEnableFunc, _func)
+function m:MakeLoop(_isEnableFunc, _func, _delay)
+    _delay = _delay or 3 -- Ensure default delay is applied
+
     local loop = coroutine.create(function()
         local lastCheck = 0
         local checkInterval = 5 -- Check config every 5 seconds instead of every 0.1 seconds
 
-        while true do
+        while self.IsWindowOpen do
             local currentTime = tick()
             local isEnabled = false
 
@@ -86,7 +86,7 @@ function m:MakeLoop(_isEnableFunc, _func)
             end
 
             _func()
-            task.wait(3) -- Longer wait between executions (was 0.1, now 3 seconds)
+            task.wait(_delay) -- Use validated delay
         end
     end)
 

@@ -18,7 +18,7 @@ function m:Init(_core, _player, _window, _garden, _pet, _webhook)
     Pet = _pet
     Webhook = _webhook
 
-    local EggReadyToHatchRemote = Core.GameEvents.EggReadyToHatch_RE
+    local EggReadyToHatchRemote = Core.ReplicatedStorage.GameEvents.EggReadyToHatch_RE
     AutoHatchConnection = EggReadyToHatchRemote.OnClientEvent:Connect(function()
         self:StartAutoHatching()
     end)
@@ -235,7 +235,7 @@ function m:PlacingEgg()
                 end
             end)
 
-            Core.GameEvents.PetEggService:FireServer("CreateEgg", newPosition)
+            Core.ReplicatedStorage.GameEvents.PetEggService:FireServer("CreateEgg", newPosition)
             task.wait(0.15) -- Small delay to avoid spamming
             
             attemptCount = attemptCount + 1
@@ -324,7 +324,7 @@ function m:HatchEgg()
             table.insert(specialHatchingEgg, egg)
             continue
         end
-        Core.GameEvents.PetEggService:FireServer("HatchPet", egg)
+        Core.ReplicatedStorage.GameEvents.PetEggService:FireServer("HatchPet", egg)
     end
 
     task.wait(1)
@@ -342,7 +342,7 @@ function m:HatchEgg()
         local eggData = self:GetPlacedEggDetail(eggUUID)
         local baseWeight = eggData and eggData.BaseWeight or 1
         local petName = eggData and eggData.Type or "Unknown"
-        Core.GameEvents.PetEggService:FireServer("HatchPet", egg)
+        Core.ReplicatedStorage.GameEvents.PetEggService:FireServer("HatchPet", egg)
         task.wait(0.15) -- Small delay to avoid spamming
 
         task.spawn(function() 

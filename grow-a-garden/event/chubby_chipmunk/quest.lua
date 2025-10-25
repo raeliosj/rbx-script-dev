@@ -10,7 +10,7 @@ function m:Init(_window, _core)
     Window = _window
     Core = _core
 
-    Core.GameEvents.SpecialEventStarted.OnClientEvent:Connect(function(weather)
+    Core.ReplicatedStorage.GameEvents.SpecialEventStarted.OnClientEvent:Connect(function(weather)
         self:StopAutoSubmitEventPlants()
         task.wait(300)
         self:StartAutoSubmitEventPlants()
@@ -37,12 +37,12 @@ function m:StartAutoSubmitEventPlants()
                 return
             end
 
-            Core.GameEvents.SubmitChipmunkFruit:FireServer("All")
+            Core.ReplicatedStorage.GameEvents.SubmitChipmunkFruit:FireServer("All")
             LastSubmitTime = tick()
         end)
     end
 
-    Core.GameEvents.SubmitChipmunkFruit:FireServer("All")
+    Core.ReplicatedStorage.GameEvents.SubmitChipmunkFruit:FireServer("All")
     LastSubmitTime = tick()
 end
 

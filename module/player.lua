@@ -22,7 +22,6 @@ function m:Init(_core)
     AntiAFKConnection = Core.LocalPlayer.Idled:Connect(function()
         Core.VirtualUser:CaptureController()
         Core.VirtualUser:ClickButton2(Vector2.new())
-        print("Anti-AFK: Clicked to prevent idle kick")
     end)
 
     ReconnectConnection = Core.GuiService.ErrorMessageChanged:Connect(function()
@@ -48,9 +47,6 @@ function m:RemoveAntiAFK()
     if AntiAFKConnection then
         AntiAFKConnection:Disconnect()
         AntiAFKConnection = nil
-        print("Anti-AFK: Disconnected idle connection")
-    else
-        print("Anti-AFK: No connection to disconnect")
     end
 end
 
@@ -58,9 +54,6 @@ function m:RemoveReconnect()
     if ReconnectConnection then
         ReconnectConnection:Disconnect()
         ReconnectConnection = nil
-        print("Reconnect: Disconnected error message connection")
-    else
-        print("Reconnect: No connection to disconnect")
     end
 end
 
@@ -92,12 +85,8 @@ function m:AddToQueue(_tool, _priority, _taskFunction, _callback)
     -- Insert task into queue
     table.insert(ToolQueue.Queue, task)
 
-    print("🔧 Added tool to queue:", _tool.Name, "Priority:", _priority, "Queue size:", #ToolQueue.Queue)
-
     -- Start processing if not already processing
     if not ToolQueue.IsProcessing then
-        print("🔧 Queue is already processing or empty, skipping...", self:GetQueueStatus())
-
         self:ProcessQueue()
     end
     
@@ -107,7 +96,6 @@ end
 -- Process the queue
 function m:ProcessQueue()
     if ToolQueue.IsProcessing or #ToolQueue.Queue == 0 then
-        print("🔧 Queue is already processing or empty, skipping...", self:GetQueueStatus())
         return -- Already processing or queue is empty
     end
 
@@ -124,8 +112,6 @@ function m:ProcessQueue()
         local currentTask = table.remove(ToolQueue.Queue, 1) -- Take first (highest priority) task
         ToolQueue.CurrentTask = currentTask
 
-        print("🔧 Processing tool queue task:", currentTask.Tool.Name)
-        
         -- Equip the tool, ensure it is equipped before proceeding
         if self:GetEquippedTool() ~= currentTask.Tool then
             self:EquipTool(currentTask.Tool)
@@ -144,7 +130,6 @@ function m:ProcessQueue()
             end
         end
         
-        print("Task execution finished")
         -- task.wait(0.5)
         self:UnequipTool() -- Unequip after task
 
@@ -153,7 +138,6 @@ function m:ProcessQueue()
     end
 
     ToolQueue.IsProcessing = false
-    print("🔧 Queue processing completed")
 end
 
 -- Get current queue status
@@ -170,7 +154,6 @@ function m:ClearQueue()
     ToolQueue.Queue = {}
     ToolQueue.IsProcessing = false
     ToolQueue.CurrentTask = nil
-    print("🔧 Tool queue cleared")
 end
 
 -- Remove specific task from queue by tool name
@@ -180,7 +163,6 @@ function m:RemoveFromQueue(_toolName)
     for i = #ToolQueue.Queue, 1, -1 do
         if ToolQueue.Queue[i].Tool.Name == _toolName then
             table.remove(ToolQueue.Queue, i)
-            print("🔧 Removed from queue:", _toolName)
             return true
         end
     end
@@ -287,7 +269,14 @@ end
 function m:TeleportToPosition(_position)
     local hrp = Core:GetHumanoidRootPart()
     if hrp then
-        hrp.CFrame = CFrame.new(_position)
+        if typeof(_position) == "Vector3" then
+            hrp.CFrame = CFrame.new(_position)
+        elseif typeof(_position) == "CFrame" then
+            hrp.CFrame = _position
+        else
+            warn("Player:TeleportToPosition - Invalid position type")
+            return false
+        end
         return true
     end
     return false
@@ -295,7 +284,12 @@ end
 
 function m:GetPosition()
     local hrp = Core:GetHumanoidRootPart()
-    return hrp and hrp.Position or Vector3.new(0, 0, 0)
+    if not hrp then
+        warn("Player:GetPosition - HumanoidRootPart not found")
+        return CFrame.new(0, 0, 0)
+    end
+
+    return hrp.CFrame or CFrame.new(0, 0, 0)
 end
 
 function m:GetAllTools()

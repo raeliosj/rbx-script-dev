@@ -258,7 +258,7 @@ function m:GearShopSection(tab)
 
                 if rarityA == rarityB then
                     if a.LayoutOrder == b.LayoutOrder then
-                        return a.Name < b.Name
+                        return a.Gear.GearName < b.Gear.GearName
                     else
                         return a.LayoutOrder < b.LayoutOrder
                     end

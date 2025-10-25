@@ -110,7 +110,7 @@ function m:StartAutoBuySpookySeeds()
         end
 
         for i = 1, stock do
-            Core.GameEvents.BuyEventShopStock:FireServer(itemName, merchant)
+            Core.ReplicatedStorage.GameEvents.BuyEventShopStock:FireServer(itemName, merchant)
         end
     end
 end
@@ -144,7 +144,7 @@ function m:StartAutoBuyCreepyCritters()
         end
 
         for i = 1, stock do
-            Core.GameEvents.BuyEventShopStock:FireServer(itemName, merchant)
+            Core.ReplicatedStorage.GameEvents.BuyEventShopStock:FireServer(itemName, merchant)
         end
     end
 
@@ -159,7 +159,7 @@ function m:StartAutoBuyCreepyCritters()
     PetModule:ChangeTeamPets(shopPetTeam, "shop")
     for itemName, stock in pairs(petItems) do
         for i = 1, stock do
-            Core.GameEvents.BuyEventShopStock:FireServer(itemName, merchant)
+            Core.ReplicatedStorage.GameEvents.BuyEventShopStock:FireServer(itemName, merchant)
         end
     end
     PetModule:ChangeTeamPets(corePetTeam, "core")
@@ -185,7 +185,7 @@ function m:StartAutoBuyDevilishDecor()
         end
 
         for i = 1, stock do
-            Core.GameEvents.BuyEventShopStock:FireServer(itemName, merchant)
+            Core.ReplicatedStorage.GameEvents.BuyEventShopStock:FireServer(itemName, merchant)
         end
     end
 end

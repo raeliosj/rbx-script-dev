@@ -130,7 +130,7 @@ function m:PlantSeed(_seedName, _numToPlant, _plantingPosition)
             if #PlantsPhysical:GetChildren() >= 800 then
                 break
             end            
-            Core.GameEvents.Plant_RE:FireServer(_position, _seedName)
+            Core.ReplicatedStorage.GameEvents.Plant_RE:FireServer(_position, _seedName)
             -- Small delay between planting actions
             task.wait(0.15)
         end
@@ -249,7 +249,7 @@ function m:AutoWateringPlants()
         
         for i = 1, each do
             local success = pcall(function()
-                Core.GameEvents.Water_RE:FireServer(Vector3.new(position.X, 0, position.Z))
+                Core.ReplicatedStorage.GameEvents.Water_RE:FireServer(Vector3.new(position.X, 0, position.Z))
             end)
             
             if success then
@@ -393,7 +393,7 @@ function m:HarvestFruit(_fruit)
     end
 
     local success, err = pcall(function()
-        Core.GameEvents.Crops.Collect:FireServer({_fruit})
+        Core.ReplicatedStorage.GameEvents.Crops.Collect:FireServer({_fruit})
     end)
 
     if not success then
@@ -408,7 +408,7 @@ function m:SellAllFruits()
     local lastPosition = Player:GetPosition()
     Player:TeleportToPosition(Core.Workspace.Tutorial_Points.Tutorial_Point_2.CFrame.Position)
     task.wait(0.5) -- Wait before checking again
-    Core.GameEvents.Sell_Inventory:FireServer()
+    Core.ReplicatedStorage.GameEvents.Sell_Inventory:FireServer()
     task.wait(0.5) -- Wait before checking again
     Player:TeleportToPosition(lastPosition)
 end
@@ -532,7 +532,7 @@ function m:MovePlant()
             end
 
             local success = pcall(function()
-                Core.GameEvents.TrowelRemote:InvokeServer(
+                Core.ReplicatedStorage.GameEvents.TrowelRemote:InvokeServer(
                     "Pickup",
                     trowel,
                     plant
@@ -544,7 +544,7 @@ function m:MovePlant()
             end
 
             local successPlace = pcall(function()
-                Core.GameEvents.TrowelRemote:InvokeServer(
+                Core.ReplicatedStorage.GameEvents.TrowelRemote:InvokeServer(
                     "Place",
                     trowel,
                     plant,

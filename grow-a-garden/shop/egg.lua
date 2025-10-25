@@ -65,7 +65,7 @@ function m:StartBuyEgg()
             continue
         end
         for i=1, stock do
-             Core.GameEvents.BuyPetEgg:FireServer(eggName)
+             Core.ReplicatedStorage.GameEvents.BuyPetEgg:FireServer(eggName)
              task.wait(0.15)
         end
     end
