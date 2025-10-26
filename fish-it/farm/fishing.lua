@@ -284,8 +284,6 @@ function m:StopAutoFishing()
         TextEffectConnection:Disconnect()
         TextEffectConnection = nil
     end
-    
-    self:SetIsFishingActive(false)
 end
 
 function m:StartAutoCharge()
@@ -316,23 +314,22 @@ function m:StartAutoCharge()
             continue
         end
         
-        task.spawn(function()
-            CancelFishingInputsRemote:InvokeServer()
-            task.wait(0.1)
-            
+        coroutine.wrap(function()
             local chargeTime = workspace:GetServerTimeNow()
             ChargeFishingRodRemote:InvokeServer(chargeTime)
+            task.wait(0.2)
             
-            task.wait(0.1)
-            coroutine.wrap(function()
-                local castPower = self:CalculateCastPower()
-                RequestFishingMinigameStartedRemote:InvokeServer(raycastResult.Position.Y, castPower)
-            end)()
-        end)
-                
+            local castPower = self:CalculateCastPower()
+            RequestFishingMinigameStartedRemote:InvokeServer(raycastResult.Position.Y, castPower)
+        end)()
+        
         local delayCast = math.max(Window:GetConfigValue("AutoInstantCatchDelay") or 1.30, 0.1)
         task.wait(delayCast)
+        
+        CancelFishingInputsRemote:InvokeServer()
     end
+
+    self:StopAutoFishing()
 end
 
 return m

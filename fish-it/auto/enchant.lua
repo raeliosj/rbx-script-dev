@@ -98,16 +98,6 @@ function m:GetCurrentRodDetails()
         end
     end
 
-    local enchants = {}
-    if metadata ~= nil then
-        for _, v in {metadata.EnchantId, metadata.EnchantId2} do
-            local enchantData = ItemUtility:GetEnchantData(v)
-            if enchantData then
-                table.insert(enchants, enchantData.Data.Name)
-            end
-        end
-    end
-
     local equippedItemData = ItemUtility.GetItemDataFromItemType("Fishing Rods", inventoryItem.Id)
     local tierIndex = equippedItemData.Data.Tier or 100
     local tierDetail = TierUtility:GetTier(tierIndex)
@@ -121,7 +111,8 @@ function m:GetCurrentRodDetails()
         MaxWeight = equippedItemData.MaxWeight or 0,
         Resilience = equippedItemData.Resilience or 0,
         Luck = equippedItemData.Data.BaseLuck or 0,
-        Enchants = enchants,
+        Enchant1 = metadata and metadata.EnchantId or "None",
+        Enchant2 = metadata and metadata.EnchantId2 or "None",
     }
 end
 
@@ -143,14 +134,14 @@ function m:StartAutoEnchant1()
         return
     end
 
-    local targetEnchant = Window:GetConfigValue("TargetEnchant1")
+    local targetEnchant = Window:GetConfigValue("TargetEnchant1") or {}
     local currentRod = self:GetCurrentRodDetails()
     if not currentRod then
         warning("No fishing rod equipped.")
         return
     end
 
-    if table.find(currentRod.Enchants, targetEnchant) then
+    if table.find(targetEnchant, currentRod.Enchant1) then
         print("Target enchant already applied to the current rod.")
         return
     end

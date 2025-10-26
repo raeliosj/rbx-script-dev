@@ -12,6 +12,7 @@ local Net
 local Promise
 local RemoteAwaitTradeResponse
 local PromptEvent
+local Constants
 
 m.TradeItems = {}
 
@@ -25,6 +26,8 @@ function m:Init(_window, _core)
     Replion = require(Core.ReplicatedStorage.Packages.Replion)
     Net = require(Core.ReplicatedStorage.Packages.Net)
     Promise = require(Core.ReplicatedStorage.Packages.Promise)
+    Constants = require(Core.ReplicatedStorage.Shared.Constants)
+
     RemoteAwaitTradeResponse = Net:RemoteFunction("AwaitTradeResponse")
 
     DataReplion = Replion.Client:WaitReplion("Data")
@@ -112,6 +115,10 @@ function m:GetListInventoryItems()
             if not itemData then
                 warning("Item data not found for item ID:", items.Id)
                 continue
+            end
+
+            if not table.find(Constants.TradableItemTypes, itemData.Type) then
+                return
             end
 
             table.insert(inventoryItems, {

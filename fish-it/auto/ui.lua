@@ -79,9 +79,8 @@ function m:EnchantSection(tab)
 
     accordion:AddLabel(function()
         local currentRod = Enchant:GetCurrentRodDetails()
-        local enchant = table.concat(currentRod.Enchants or {}, ", ")
 
-        return string.format("Current Enchant Rod: %s\nEnchants: %s", currentRod.Name or "N/A", enchant ~= "" and enchant or "None")
+        return string.format("Current Rod: %s\nEnchant 1: %s \nEnchant 2: %s", currentRod.Name or "N/A", currentRod.Enchant1 or "None", currentRod.Enchant2 or "None")
     end)
 
     accordion:AddSeparator()
@@ -91,7 +90,7 @@ function m:EnchantSection(tab)
         Name = "Select Target Enchant",
         Options = Enchant:GetListEnchant(),
         Placeholder = "Select Enchant...",
-        MultiSelect = false,
+        MultiSelect = true,
         Flag = "TargetEnchant1",
         Default = "",
     })
