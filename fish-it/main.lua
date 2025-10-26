@@ -20,6 +20,7 @@ local TeleportUI = require('teleport/ui.lua')
 -- Auto modules
 local EventsModule = require('auto/events.lua')
 local EnchantModule = require('auto/enchant.lua')
+local TradeModule = require('auto/trade.lua')
 local AutoUI = require('auto/ui.lua')
 
 -- Misc modules
@@ -82,6 +83,7 @@ InventoryModule:Init(window, CoreModule)
 
 -- Auto
 EventsModule:Init(window, CoreModule)
+TradeModule:Init(window, CoreModule)
 EnchantModule:Init(window, CoreModule, PlayerModule)
 
 -- Misc
@@ -89,5 +91,5 @@ AnimationModule:Init(window, CoreModule)
 
 FarmUI:Init(window, CoreModule, FishingModule, InventoryModule)
 TeleportUI:Init(window, CoreModule, PlayerModule, NPCModule, SpotModule, customPositionConfig, TeleportEvent)
-AutoUI:Init(window, EventsModule, EnchantModule)
+AutoUI:Init(window, CoreModule, EventsModule, EnchantModule, TradeModule)
 MiscUI:Init(window, CoreModule, AnimationModule)

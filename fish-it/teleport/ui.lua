@@ -23,8 +23,9 @@ function m:Init(_window, _core, _player, _npc, _spot, _customPositionConfig, _te
     })
 
     self:LockPositionSection(tab)
-    self:FishingSpotsSection(tab)
     self:EventSection(tab)
+    self:FishingSpotsSection(tab)
+    self:PlayerSection(tab)
     self:NPCSection(tab)
     self:CustomSection(tab)
 end
@@ -133,8 +134,69 @@ function m:EventSection(tab)
         Default = false,
         Flag = "AutoTeleportToEvent",
         Callback = function(value)
+            TeleportEvent.IsOnEvent = value
             if value then
                 TeleportEvent:TeleportToEvent()
+            end
+        end
+    })
+end
+
+function m:PlayerSection(tab)
+    local accordion = tab:AddAccordion({
+        Title = "Player",
+        Icon = "🧑",
+        Default = false,
+    })
+
+    accordion:AddSelectBox({
+        Name = "Select Player to Teleport",
+        Options = {"Loading..."},
+        Placeholder = "Select Player...",
+        MultiSelect = false,
+        Flag = "TeleportToPlayerUsername",
+        OnDropdownOpen = function(currentOptions, updateOptions)
+            local players = Core.Players:GetChildren()
+            local formattedPlayers = {}
+
+            for _, playerData in pairs(players) do
+                if playerData == Core.LocalPlayer then
+                    continue
+                end
+                table.insert(formattedPlayers, playerData.Name)
+            end
+
+            table.sort(formattedPlayers)
+            
+            updateOptions(formattedPlayers)
+        end
+    })
+
+    accordion:AddButton({
+        Name = "Teleport to Player",
+        Callback = function()
+            local username = Window:GetConfigValue("TeleportToPlayerUsername")
+            local players = Core.Players:GetChildren()
+
+            if not username or username == "" then
+                return
+            end
+
+            for _, playerData in pairs(players) do
+                if playerData.Name == username then
+                    local character = playerData.Character
+                    if not character then
+                        return
+                    end
+
+                    local hrp = character:FindFirstChild("HumanoidRootPart")
+                    if not hrp then
+                        return
+                    end
+
+                    Player:TeleportToPosition(hrp.CFrame)
+                    return
+                end
             end
         end
     })
@@ -143,7 +205,7 @@ end
 function m:NPCSection(tab)
     local accordion = tab:AddAccordion({
         Title = "NPC",
-        Icon = "🧑‍🤝‍🧑",
+        Icon = "👨‍👩‍👧‍👦",
         Default = false,
     })
 

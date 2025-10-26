@@ -7,8 +7,8 @@ OUTPUT_FILE_FISH := ./output/bundle-fish.lua
 INPUT_FILE_FISH := ./fish-it/main.lua
 RELEASE_FILE_FISH := ./output/bundle-fish-release.lua
 
-.PHONY: run
-run: 
+.PHONY: run-gag
+run-gag: 
 	@if [ -f "$(INPUT_FILE)" ]; then \
 		lua-bundler -e $(INPUT_FILE) -o $(OUTPUT_FILE); \
 		echo "$(GREEN)Copying output file to clipboard...$(NC)"; \
