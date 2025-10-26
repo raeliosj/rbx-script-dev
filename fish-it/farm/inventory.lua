@@ -2,6 +2,8 @@ local m = {}
 
 local Window
 local Core
+local Webhook
+
 local TierUtility
 local ItemUtility
 local Replion
@@ -13,9 +15,10 @@ local FishCount = 0
 
 m.ListFish = {}
 
-function m:Init(_window, _core)
+function m:Init(_window, _core, _webhook)
     Window = _window
     Core = _core
+    Webhook = _webhook
 
     TierUtility = require(Core.ReplicatedStorage.Shared.TierUtility)
     ItemUtility = require(Core.ReplicatedStorage.Shared.ItemUtility)
@@ -77,10 +80,10 @@ function m:CreateConnections()
 		return
 	end
 
-	FishCaughtConnection = Net:RemoteEvent("FishCaught").OnClientEvent:Connect(function(fishName, fishData)
-		task.spawn(function()
-            self:InventoryController(fishName)
-        end)
+	FishCaughtConnection = Net:RemoteEvent("ObtainedNewFishNotification").OnClientEvent:Connect(function(fishId, fishMetadata, fishInventoryItem)
+        coroutine.wrap(function()
+            self:InventoryController(fishId, fishMetadata, fishInventoryItem)
+        end)()
 	end)
 end
 
@@ -128,9 +131,15 @@ function m:ListInventoryFishs()
     return fishItems
 end
 
-function m:InventoryController(fishName)
+function m:InventoryController(fishId, fishMetadata, fishInventoryItem)
+    if Window:GetConfigValue("EnableDiscordWebhook") then
+        coroutine.wrap(function()
+            Webhook:SendWebhook(fishId, fishMetadata)
+        end)()
+    end
+
     if Window:GetConfigValue("AutoFavoriteFish") then
-        self:FavoriteFishByName(fishName)
+        self:FavoriteFish(fishInventoryItem.InventoryItem)
     end
     
     if Window:GetConfigValue("AutoSellFish") then
@@ -161,36 +170,33 @@ function m:InventoryController(fishName)
     end
 end
 
-function m:FavoriteFishByName()
-    if not fishDetails then
+function m:FavoriteFish(fishInventoryItem)
+    if not fishInventoryItem then
         return
     end
-    local rarityIndex = fishDetails.RarityIndex or 0
-    local minRarityToFavorite = Window:GetConfigValue("FavoriteMinRarityFish") or 0
-    
-    if rarityIndex < minRarityToFavorite then
-        return
-    end
-    
     local favoriteFishName = Window:GetConfigValue("FavoriteFishName") or {}
-    local fishItems = self:ListInventoryFishs()
-    
-    for _, fishItem in pairs(fishItems) do
-        if fishItem.Favorited then
-            continue
-        end
+    local minRarityToFavorite = Window:GetConfigValue("FavoriteMinRarityFish") or 9999999999999999
 
-        if table.find(favoriteFishName, fishItem.Name) then
-            self:FavoriteItemByUUID(fishItem.UUID)
-            continue
-        end
-
-        if fishItem.RarityIndex < minRarityToFavorite then
-            continue
-        end
-
-        self:FavoriteItemByUUID(fishItem.UUID)
+    local fishData = ItemUtility.GetItemDataFromItemType("Fishes", fishInventoryItem.Id)
+    if not fishData or not fishData.Data then
+        warn("Inventory:FavoriteFish - Unable to find fish data for ID:", fishInventoryItem.Id)
+        return
     end
+
+    local fishName = fishData.Data.Name or "Unknown"
+    local rarityIndex = fishData.Data.Tier or -999999999999
+
+    if table.find(favoriteFishName, fishName) then
+        self:FavoriteItemByUUID(fishInventoryItem.UUID)
+        return
+    end
+    
+    if rarityIndex > minRarityToFavorite then
+        self:FavoriteItemByUUID(fishInventoryItem.UUID)
+        return
+    end
+
+    return
 end
 
 function m:FavoriteItemByUUID(itemUUID)
