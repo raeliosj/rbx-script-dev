@@ -8,16 +8,19 @@ function m:Init(_window, _core)
     Core = _core
 
     self:DisableCatchFishAnimation()
+    self:DisablePlayerName()
 end
 
 function m:DisableCatchFishAnimation()
     local isDisabled = Window:GetConfigValue("DisableCatchFishAnimation") or false
     local notification = Core.LocalPlayer.PlayerGui["Small Notification"].Display
 
-    print("Display name:", notification.Name)
-    print("Currnent visibility:", notification.Visible)
-
     notification.Visible = not isDisabled
+end
+
+function m:DisablePlayerName()
+    local isDisabled = Window:GetConfigValue("DisablePlayerName") or false
+    Core:GetHumanoidRootPart().Overhead.Content.Header.Visible = not isDisabled
 end
 
 return m

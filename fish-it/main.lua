@@ -19,6 +19,7 @@ local NPCModule = require('teleport/npc.lua')
 local TeleportUI = require('teleport/ui.lua')
 
 -- Auto modules
+local TrickOrTreatModule = require('auto/trick_or_treat.lua')
 local EventsModule = require('auto/events.lua')
 local EnchantModule = require('auto/enchant.lua')
 local TradeModule = require('auto/trade.lua')
@@ -29,7 +30,7 @@ local WebhookNotificationModule = require('notification/webhook.lua')
 local NotificationUI = require('notification/ui.lua')
 
 -- Misc modules
-local AnimationModule = require('misc/animation.lua')
+local DisableModule = require('misc/disable.lua')
 local MiscUI = require('misc/ui.lua')
 
 local configFolder = "EzHub/EzFish-It"
@@ -88,6 +89,7 @@ WebhookFarmModule:Init(window, CoreModule, Discord)
 InventoryModule:Init(window, CoreModule, WebhookFarmModule)
 
 -- Auto
+TrickOrTreatModule:Init(window, CoreModule, NPCModule)
 EventsModule:Init(window, CoreModule)
 TradeModule:Init(window, CoreModule)
 EnchantModule:Init(window, CoreModule, PlayerModule)
@@ -96,10 +98,10 @@ EnchantModule:Init(window, CoreModule, PlayerModule)
 WebhookNotificationModule:Init(window, CoreModule, Discord)
 
 -- Misc
-AnimationModule:Init(window, CoreModule)
+DisableModule:Init(window, CoreModule)
 
 FarmUI:Init(window, CoreModule, FishingModule, InventoryModule)
 TeleportUI:Init(window, CoreModule, PlayerModule, NPCModule, SpotModule, customPositionConfig, TeleportEvent)
 AutoUI:Init(window, CoreModule, EventsModule, EnchantModule, TradeModule)
 NotificationUI:Init(window, CoreModule, WebhookNotificationModule)
-MiscUI:Init(window, CoreModule, AnimationModule)
+MiscUI:Init(window, CoreModule, DisableModule)

@@ -30,6 +30,8 @@ local IsMinigameActive = false
 local IsFishingActive = false
 local LastFishingActivityTime = 0
 
+local CurrentMinigameData = nil
+
 function m:Init(_window, _core)
     Window = _window
     Core = _core
@@ -72,26 +74,11 @@ function m:Init(_window, _core)
             return Window:GetConfigValue("AutoInstantCatch")
         end, 
         function()
-            self:CatchFish()
-        end,
-        0.1
-    )
-    Core:MakeLoop(
-        function()
-            return Window:GetConfigValue("AutoInstantCatch")
-        end, 
-        function()
             self:StartAutoCharge()
         end
     )
 end
 
-function m:CatchFish()
-    while IsMinigameActive do
-        FishingCompletedEvent:FireServer()
-        task.wait(0.1)
-    end
-end
 
 function m:IsMaxInventory()
     if DataReplion:GetExpect("EquippedType") ~= "Fishing Rods" then
@@ -136,7 +123,7 @@ end
 
 function m:CalculateCastPower()
     local isAutoPerfect = Window:GetConfigValue("AutoPerfectCast") or true
-    local minCastPower = 0.9
+    local minCastPower = 0.5
 
     if isAutoPerfect then
         minCastPower = 0.95
@@ -145,6 +132,58 @@ function m:CalculateCastPower()
     -- Generate a random number between minCastPower and 0.9999
     local castPower = math.random() * (0.9999 - minCastPower) + minCastPower
     return castPower
+end
+
+function m:GetElapsedFromPower(seedTime, castPower)
+    local frequency = Random.new(seedTime):NextInteger(4, 10)
+
+	castPower = math.clamp(castPower, 0, 1)
+
+	if castPower == 1 then
+		return math.pi / frequency
+	elseif castPower == 0 then
+		return 0
+	end
+
+	local theta = math.asin(1 - 2 * castPower)
+	local elapsed = (theta - math.pi / 2) / frequency
+
+	if elapsed < 0 then
+		elapsed = elapsed + (2 * math.pi) / frequency
+	end
+
+	return elapsed
+end
+
+function m:GetElapsedFromPowerV2(seedTime, castPower)
+    castPower = math.clamp(castPower or 0, 0, 1)
+
+    local frequency = Random.new(seedTime):NextNumber(4, 10)
+
+    if castPower >= 1 then
+        local elapsedPeak = math.pi / frequency
+        return elapsedPeak, seedTime + elapsedPeak
+    end
+
+    if castPower <= 0 then
+        return 0, seedTime
+    end
+
+    local sinArg = 1 - 2 * castPower
+
+    if sinArg > 1 then sinArg = 1 end
+    if sinArg < -1 then sinArg = -1 end
+
+    local theta = math.asin(sinArg)
+
+    local baseElapsed = (theta - (math.pi / 2)) / frequency
+
+    if baseElapsed < 0 then
+        baseElapsed = baseElapsed + (2 * math.pi) / frequency
+    end
+
+    local timeAtPower = seedTime + baseElapsed
+    return baseElapsed, timeAtPower
 end
 
 function m:GetIsFishingActive()
@@ -163,7 +202,6 @@ end
 
 function m:CreateConnections()
     if not TextEffectConnection then
-        
         TextEffectConnection = Net:RemoteEvent("ReplicateTextEffect").OnClientEvent:Connect(function(data)
             local localPlayerCharacter = Core:GetCharacter()
             if not localPlayerCharacter then return end
@@ -175,14 +213,26 @@ function m:CreateConnections()
                 return
             end
 
-            IsMinigameActive = true
-            self:CatchFish()
+            if not CurrentMinigameData then
+                warn("No current minigame data available for text effect.")
+                return
+            end
+
+            local clickProgress = 0
+            while clickProgress < 1 do
+                task.wait(0.25)
+                print("Clicking for fishing...", CurrentMinigameData.FishingClickPower)
+                self:SetIsFishingActive(true)
+                clickProgress = clickProgress + (CurrentMinigameData.FishingClickPower)
+            end
+
+            FishingCompletedEvent:FireServer()
         end)
     end
 
     if not FishCaughtConnection then
-        FishCaughtConnection = Net:RemoteEvent("FishingStopped").OnClientEvent:Connect(function(fishName, fishData)
-            IsMinigameActive = false
+        FishCaughtConnection = Net:RemoteEvent("ObtainedNewFishNotification").OnClientEvent:Connect(function(...)
+            -- IsMinigameActive = false
             if not IsFishingActive then
                 return
             end
@@ -256,16 +306,23 @@ function m:StartAutoFishing()
     
     while Window:GetConfigValue("AutoFishing") and Core.IsWindowOpen do
         self:SetIsFishingActive(true)
+        local chargeTime = workspace:GetServerTimeNow()
         local castPower = self:CalculateCastPower()
-        local delayCast = math.max(Window:GetConfigValue("AutoInstantCatchDelay") or 1.30, 0.1)
-        local chargeTime = workspace:GetServerTimeNow() - delayCast
-        ChargeFishingRodRemote:InvokeServer(chargeTime)
-        
-        local success, currentMinigameData = RequestFishingMinigameStartedRemote:InvokeServer(raycastResult.Position.Y, castPower)
+        local delayCast = self:GetElapsedFromPower(chargeTime, castPower)
+        ChargeFishingRodRemote:InvokeServer(chargeTime - delayCast)
+
+        if Window:GetConfigValue("AutoPerfectCast") then
+            -- task.wait(delayCast)
+            task.wait(0.2)
+        end
+
+        local startTime = workspace:GetServerTimeNow()
+        local success, minigameData = RequestFishingMinigameStartedRemote:InvokeServer(raycastResult.Position.Y, castPower, startTime)
         if success then
+            CurrentMinigameData = minigameData
             break
         end
-        task.wait(0.1)
+        CancelFishingInputsRemote:InvokeServer()
     end
 end
 
@@ -315,18 +372,39 @@ function m:StartAutoCharge()
         end
         
         coroutine.wrap(function()
-            local chargeTime = workspace:GetServerTimeNow()
-            ChargeFishingRodRemote:InvokeServer(chargeTime)
-            task.wait(0.2)
-            
-            local castPower = self:CalculateCastPower()
-            RequestFishingMinigameStartedRemote:InvokeServer(raycastResult.Position.Y, castPower)
+            CancelFishingInputsRemote:InvokeServer()
+
+            while Window:GetConfigValue("AutoInstantCatch") and Core.IsWindowOpen do
+                local chargeTime = workspace:GetServerTimeNow()
+                local castPower = self:CalculateCastPower()
+                -- local castPower = Constants:GetPower(startTime)
+                local delayCast = self:GetElapsedFromPower(chargeTime, castPower)
+                ChargeFishingRodRemote:InvokeServer(chargeTime)
+        
+                if Window:GetConfigValue("AutoPerfectCast") then
+                    task.wait(0.2)
+                    -- print("Waiting for perfect cast timing:", delayCast)
+                    -- task.wait(delayCast)
+                end
+
+                local startTime = workspace:GetServerTimeNow()
+                local success, minigameData = RequestFishingMinigameStartedRemote:InvokeServer(raycastResult.Position.Y, castPower, startTime)
+                if success then
+                    CurrentMinigameData = minigameData
+                    break
+                else
+                    CancelFishingInputsRemote:InvokeServer()
+                end
+            end
         end)()
         
-        local delayCast = math.max(Window:GetConfigValue("AutoInstantCatchDelay") or 1.30, 0.1)
-        task.wait(delayCast)
-        
-        CancelFishingInputsRemote:InvokeServer()
+        local delayRetry = math.max(Window:GetConfigValue("AutoInstantCatchDelay") or 1.30, 0.1)
+
+        -- if Window:GetConfigValue("AutoPerfectCast") then
+        --     delayRetry = delayCast + delayRetry
+        -- end
+        print("Waiting after cast for perfect catch:", delayRetry)
+        task.wait(delayRetry)
     end
 
     self:StopAutoFishing()

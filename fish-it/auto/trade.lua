@@ -33,30 +33,40 @@ function m:Init(_window, _core)
     DataReplion = Replion.Client:WaitReplion("Data")
     self.TradeItems = self:GetListItemsToTrade()
     
-    
-    PromptEvent = Instance.new("BindableEvent")
-    RemoteAwaitTradeResponse.OnClientInvoke = function(itemType, itemData, sender)
-        return self:AcceptTrade(itemType, itemData, sender)
-    end
-
     Core:MakeLoop(
         function()
             return Window:GetConfigValue("AutoGiveItems")
         end,
         function()
-            self:StartAutGive()
+            self:StartAutoGive()
         end
     )
+
+    PromptEvent = Instance.new("BindableEvent")
+    RemoteAwaitTradeResponse.OnClientInvoke = function(itemType, itemData, sender)
+        return self:AcceptTrade(itemType, itemData, sender)
+    end
 end
 
 function m:GetListItemsToTrade()
     local listItems = {}
 
-    for _, itemInfo in pairs(ItemData) do
+    for _, itemInfo in pairs(ItemData or {}) do
         local itemData = itemInfo.Data
         if not itemData then
             continue
         end
+
+        local itemType = itemData.Type or "Unknown"
+        -- if not table.find(Constants.TradableItemTypes, itemType) then
+        --     warning("Item type not tradable for item ID:")
+        --     continue
+        -- end
+
+        -- if table.find(Constants.PaidTradableItemTypes, itemType) then
+        --     warning("Item ID is in non-tradable list:")
+        --     continue
+        -- end
 
         local tierIndex = itemData.Tier or 100
         local tierDetail = TierUtility:GetTier(tierIndex)
@@ -64,7 +74,7 @@ function m:GetListItemsToTrade()
         table.insert(listItems, {
             Id = itemData.Id,
             Name = itemData.Name or "Unknown",
-            Type = itemData.Type or "Unknown",
+            Type = itemType,
             Description = itemData.Description or "No Description",
             Rarity = tierDetail and tierDetail.Name or "Unknown",
             RarityIndex = tierIndex,
@@ -93,13 +103,17 @@ end
 
 function m:GetListInventoryItems()
     local inventoryItems = {}
-    local inventory = DataReplion:GetExpect({ "Inventory" }) or {}
+    print("Fetching inventory data...")
+    local inventory = DataReplion:GetExpect({ "Inventory" })
 
-    if not inventory then
+    if not inventory or #inventory == 0 then
+        warning("No inventory data found")
         return inventoryItems
     end
 
+    print("Listing inventory items...")
     for _, v in pairs(inventory) do
+        print("Processing item type:", _, "with", #v, "items")
         for _, items in pairs(v) do
             if not items.Id then
                 warning("Item ID not found")
@@ -115,10 +129,6 @@ function m:GetListInventoryItems()
             if not itemData then
                 warning("Item data not found for item ID:", items.Id)
                 continue
-            end
-
-            if not table.find(Constants.TradableItemTypes, itemData.Type) then
-                return
             end
 
             table.insert(inventoryItems, {
@@ -138,28 +148,36 @@ function m:GetListInventoryItems()
     return inventoryItems
 end
 
-function m:StartAutGive()
+function m:StartAutoGive()
+    print("Starting Auto Give Items...")
     if not Window:GetConfigValue("AutoGiveItems") then
+        warn("Auto Give Items: Feature is disabled.")
         return
     end
 
+    print("Preparing to start Auto Give Items...")
     local userId = Window:GetConfigValue("GiveToPlayer") or 0
     if userId == 0 then
         warn("Auto Give Items: No UserId specified to give items to.")
         return
     end
-    
+
+    print(string.format("Auto Give Items: Giving items to UserId: %d", userId))
     local itemName = Window:GetConfigValue("GiveItem") or {}
     local minRarity = Window:GetConfigValue("GiveMinRarityItems") or nil
+    local dontGiveFavorite = Window:GetConfigValue("DontGiveFavoriteItems") or false
+    
     if #itemName == 0 and not minRarity then
         warn("Auto Give Items: No items or minimum rarity specified to give.")
         return
     end
 
-    local dontGiveFavorite = Window:GetConfigValue("DontGiveFavoriteItems") or false
+    --TODO: Bug fixing here (Proccess stop in here)
+    print("Starting Auto Give Items...")
     local inventoryItems = self:GetListInventoryItems()
     local itemsToGive = {}
 
+    print(string.format("Found %d tradable items in inventory.", #inventoryItems))
     for _, itemDetail in pairs(inventoryItems) do
         if dontGiveFavorite and itemDetail.Favorited then
             print(string.format("Skipping favorite item: %s", itemDetail.Name))
@@ -183,6 +201,7 @@ function m:StartAutGive()
         end
     end
 
+    print(string.format("Total items to give: %d", #itemsToGive))
     while Window:GetConfigValue("AutoGiveItems") and #itemsToGive > 0 do
         print(string.format("Giving item: %s (UUID: %s)", itemDetail.Name, itemDetail.UUID))
         local success, data = Net:RemoteFunction("InitiateTrade"):InvokeServer(

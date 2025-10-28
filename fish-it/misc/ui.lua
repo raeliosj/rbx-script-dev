@@ -2,35 +2,44 @@ local m = {}
 
 local Window
 local Core
-local Animation
+local Disable
 
-function m:Init(_window, _core, _animation)
+function m:Init(_window, _core, _disable)
     Window = _window
     Core = _core
-    Animation = _animation
+    Disable = _disable
 
     local tab = Window:AddTab({
         Name = "Misc",
         Icon = "🛠️",
     })
 
-    self:AnimationSection(tab)
+    self:DisableSection(tab)
     self:ServerSection(tab)
 end
 
-function m:AnimationSection(tab)
+function m:DisableSection(tab)
     local accordion = tab:AddAccordion({
-        Title = "Animations",
-        Icon = "🎬",
+        Title = "Remove",
+        Icon = "❌",
         Default = false,
     })
-
+    
     accordion:AddToggle({
-        Name = "Disable Catch Fish Animation 🎣",
+        Name = "Remove Catch Fish Animation 🎣",
         Default = false,
         Flag = "DisableCatchFishAnimation",
         Callback = function(value)
-            Animation:DisableCatchFishAnimation()
+            Disable:DisableCatchFishAnimation()
+        end
+    })
+
+    accordion:AddToggle({
+        Name = "Remove Player Name",
+        Default = false,
+        Flag = "DisablePlayerName",
+        Callback = function(value)
+            Disable:DisablePlayerName()
         end
     })
 end

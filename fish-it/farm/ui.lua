@@ -40,7 +40,7 @@ function m:FishingSection(tab)
 
     accordion:AddToggle({
         Name = "Auto Perfect Cast 🎯",
-        Default = true,
+        Default = false,
         Flag = "AutoPerfectCast",
     })
 

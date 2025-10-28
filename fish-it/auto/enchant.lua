@@ -98,6 +98,19 @@ function m:GetCurrentRodDetails()
         end
     end
 
+    local enchant1 = "None"
+    local enchant2 = "None"
+
+    for k, v in pairs(inventoryItem.Metadata or {}) do
+        local enchantData = ItemUtility:GetEnchantData(v)
+
+        if k == "EnchantId" then
+            enchant1 = enchantData.Data.Name
+        elseif k == "EnchantId2" then
+            enchant2 = enchantData.Data.Name
+        end
+    end
+
     local equippedItemData = ItemUtility.GetItemDataFromItemType("Fishing Rods", inventoryItem.Id)
     local tierIndex = equippedItemData.Data.Tier or 100
     local tierDetail = TierUtility:GetTier(tierIndex)
@@ -111,8 +124,8 @@ function m:GetCurrentRodDetails()
         MaxWeight = equippedItemData.MaxWeight or 0,
         Resilience = equippedItemData.Resilience or 0,
         Luck = equippedItemData.Data.BaseLuck or 0,
-        Enchant1 = metadata and metadata.EnchantId or "None",
-        Enchant2 = metadata and metadata.EnchantId2 or "None",
+        Enchant1 = enchant1,
+        Enchant2 = enchant2,
     }
 end
 
@@ -169,7 +182,6 @@ function m:StartAutoEnchant1()
 
         local itemData = ItemUtility:GetItemData(inventoryItem.Id)
 
-        print("Item Type: " .. tostring(itemData.Data.Type))
         if itemData.Data.Type == "EnchantStones" then
             hotBarIndex = k
             break

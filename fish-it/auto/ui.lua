@@ -22,9 +22,24 @@ function m:Init(_window, _core, _events, _enchant, _trade)
         Icon = "🤖",
     })
 
+    self:HelloweenSection(tab)
     self:WeatherMachineSection(tab)
     self:EnchantSection(tab)
     self:TradeSection(tab)
+end
+
+function m:HelloweenSection(tab)
+    local accordion = tab:AddAccordion({
+        Title = "Halloween",
+        Icon = "🎃",
+        Default = false,
+    })
+
+    accordion:AddToggle({
+        Name = "Auto Trick Or Treat 🎃",
+        Default = false,
+        Flag = "AutoTrickOrTreat",
+    })
 end
 
 function m:WeatherMachineSection(tab)
@@ -77,11 +92,13 @@ function m:EnchantSection(tab)
         Default = false,
     })
 
+    accordion:AddLabel("")
     accordion:AddLabel(function()
         local currentRod = Enchant:GetCurrentRodDetails()
 
         return string.format("Current Rod: %s\nEnchant 1: %s \nEnchant 2: %s", currentRod.Name or "N/A", currentRod.Enchant1 or "None", currentRod.Enchant2 or "None")
     end)
+    accordion:AddLabel("")
 
     accordion:AddSeparator()
 
@@ -204,7 +221,7 @@ function m:TradeSection(tab)
         Flag = "AutoGiveItems",
         OnToggle = function(value)
             if value then
-                Trade:StartAutGive()
+                Trade:StartAutoGive()
             end
         end,
     })
