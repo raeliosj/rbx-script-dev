@@ -59,7 +59,12 @@ end
 local activeLoops = {}
 
 function m:MakeLoop(_isEnableFunc, _func, _delay)
-    _delay = _delay or 3 -- Ensure default delay is applied
+    local function resolveDelay()
+        if type(_delay) == "function" then
+            return _delay()
+        end
+        return _delay or 3 -- Ensure default delay is applied
+    end
 
     local loop = coroutine.create(function()
         local lastCheck = 0
@@ -86,7 +91,7 @@ function m:MakeLoop(_isEnableFunc, _func, _delay)
             end
 
             _func()
-            task.wait(_delay) -- Use validated delay
+            task.wait(resolveDelay()) -- Use resolved delay
         end
     end)
 

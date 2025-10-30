@@ -29,6 +29,7 @@ local DataReplion
 local IsMinigameActive = false
 local IsFishingActive = false
 local LastFishingActivityTime = 0
+local Areas = {}
 
 local CurrentMinigameData = nil
 
@@ -46,6 +47,7 @@ function m:Init(_window, _core)
     Replion = require(Core.ReplicatedStorage.Packages.Replion)
     PlayerStatsUtility = require(Core.ReplicatedStorage.Shared.PlayerStatsUtility)
     ItemUtility = require(Core.ReplicatedStorage.Shared.ItemUtility)
+    Areas = require(Core.ReplicatedStorage.Areas)
 
     UserInputService = game:GetService("UserInputService")
     ClickHook = GuiControl:Hook("Click")
@@ -78,7 +80,6 @@ function m:Init(_window, _core)
         end
     )
 end
-
 
 function m:IsMaxInventory()
     if DataReplion:GetExpect("EquippedType") ~= "Fishing Rods" then
@@ -219,9 +220,9 @@ function m:CreateConnections()
             end
 
             local clickProgress = 0
+            local delayClick = math.max(Window:GetConfigValue("AutoInstantCatchDelayPerClickPower") or 0.25, 0.05)
             while clickProgress < 1 do
-                task.wait(0.25)
-                print("Clicking for fishing...", CurrentMinigameData.FishingClickPower)
+                task.wait(delayClick)
                 self:SetIsFishingActive(true)
                 clickProgress = clickProgress + (CurrentMinigameData.FishingClickPower)
             end
@@ -343,13 +344,17 @@ function m:StopAutoFishing()
     end
 end
 
+function m:GetNormalizedDelay(baseDelay, power)
+	return baseDelay / power
+end
+
 function m:StartAutoCharge()
     if not Window:GetConfigValue("AutoInstantCatch") or self:GetIsFishingActive() then
         return
     end
 
     self:CreateConnections()
-    
+
     local autoEquip = Window:GetConfigValue("AutoEquipFishingRod") or false
     if autoEquip and not self:isRodEquipped() then
         EquipToolFromHotbar:FireServer(1)
@@ -364,46 +369,62 @@ function m:StartAutoCharge()
 
     local raycastResult = self:GetRayCastPosition()
     while Window:GetConfigValue("AutoInstantCatch") and Core.IsWindowOpen do
-        self:SetIsFishingActive(true)
         if not raycastResult or not raycastResult.Instance then
-            task.wait(0.1)
+            task.wait(1)
             raycastResult = self:GetRayCastPosition()
             continue
         end
-        
-        coroutine.wrap(function()
-            CancelFishingInputsRemote:InvokeServer()
 
+        local AutoInstantCatchLoop = coroutine.create(function()
             while Window:GetConfigValue("AutoInstantCatch") and Core.IsWindowOpen do
-                local chargeTime = workspace:GetServerTimeNow()
+                CancelFishingInputsRemote:InvokeServer()
                 local castPower = self:CalculateCastPower()
-                -- local castPower = Constants:GetPower(startTime)
-                local delayCast = self:GetElapsedFromPower(chargeTime, castPower)
-                ChargeFishingRodRemote:InvokeServer(chargeTime)
-        
+                
+                local chargeTime = workspace:GetServerTimeNow()
+                local success = ChargeFishingRodRemote:InvokeServer(chargeTime)
+                if not success then
+                    print("AutoInstantCatch: Failed to charge fishing rod, retrying...")
+                    continue
+                end
+                
                 if Window:GetConfigValue("AutoPerfectCast") then
                     task.wait(0.2)
-                    -- print("Waiting for perfect cast timing:", delayCast)
-                    -- task.wait(delayCast)
                 end
-
+                
                 local startTime = workspace:GetServerTimeNow()
-                local success, minigameData = RequestFishingMinigameStartedRemote:InvokeServer(raycastResult.Position.Y, castPower, startTime)
-                if success then
-                    CurrentMinigameData = minigameData
+                local success, minigameResult = RequestFishingMinigameStartedRemote:InvokeServer(raycastResult.Position.Y, castPower, startTime)
+                
+                if minigameResult == "Already fishing!" then
                     break
-                else
-                    CancelFishingInputsRemote:InvokeServer()
                 end
-            end
-        end)()
-        
-        local delayRetry = math.max(Window:GetConfigValue("AutoInstantCatchDelay") or 1.30, 0.1)
+                
+                if not success then
+                    print("AutoInstantCatch: Failed to start fishing minigame, retrying...", minigameResult)
+                    continue
+                end
 
-        -- if Window:GetConfigValue("AutoPerfectCast") then
-        --     delayRetry = delayCast + delayRetry
-        -- end
-        print("Waiting after cast for perfect catch:", delayRetry)
+                if minigameResult.FishingClickPower then
+                    CurrentMinigameData = minigameResult
+                end
+                
+                break
+            end
+        end)
+
+        coroutine.resume(AutoInstantCatchLoop)
+
+        local fishingArea = Core.LocalPlayer.PlayerGui.Events.Frame.Location.Label.Text or "Ocean"
+        local areaData = Areas[fishingArea]
+        local areaPowerBonus = areaData and areaData.ClickPowerMultiplier or 0
+        
+        local randomJitter = math.random(-5, 5) * 0.005
+
+        local delayRetry = math.max(Window:GetConfigValue("AutoInstantCatchDelay") or 1.70, 0.1)
+        if Window:GetConfigValue("AutoPerfectCast") then
+            delayRetry = delayRetry + 0.2
+        end
+        -- delayRetry = delayRetry + randomJitter
+
         task.wait(delayRetry)
     end
 

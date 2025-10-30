@@ -36,7 +36,7 @@ end
 
 function m:ListFishItems()
     local listFishs = {}
-    local fishData = ItemUtility:GetFishes() or {}
+    local fishData = ItemUtility:GetFish() or {}
 
     for fishName, fishInfo in pairs(fishData) do
         if not fishInfo.Data then
@@ -100,7 +100,7 @@ function m:ListInventoryFishs()
     local fishItems = {}
 
     for _, item in pairs(items) do
-        local itemData = ItemUtility.GetItemDataFromItemType("Fishes", item.Id)
+        local itemData = ItemUtility.GetItemDataFromItemType("Fish", item.Id)
         if not item.Metadata then
             continue
         end
@@ -109,7 +109,7 @@ function m:ListInventoryFishs()
             continue
         end
 
-        if  itemData.Data.Type ~= "Fishes" then
+        if  itemData.Data.Type ~= "Fish" then
             continue
         end
 
@@ -177,7 +177,7 @@ function m:FavoriteFish(fishInventoryItem)
     local favoriteFishName = Window:GetConfigValue("FavoriteFishName") or {}
     local minRarityToFavorite = Window:GetConfigValue("FavoriteMinRarityFish") or 9999999999999999
 
-    local fishData = ItemUtility.GetItemDataFromItemType("Fishes", fishInventoryItem.Id)
+    local fishData = ItemUtility.GetItemDataFromItemType("Fish", fishInventoryItem.Id)
     if not fishData or not fishData.Data then
         warn("Inventory:FavoriteFish - Unable to find fish data for ID:", fishInventoryItem.Id)
         return

@@ -70,6 +70,17 @@ function m:FishingSection(tab)
         Flag = "AutoInstantCatchDelay",
     })
 
+    accordion:AddNumberBox({
+        Name = "Delay per click power ⚡",
+        Placeholder = "Delay per click power...",
+        Default = 0.25,
+        Min = 0.1,
+        Max = 1.0,
+        Increment = 0.01,
+        Decimals = 2,
+        Flag = "AutoInstantCatchDelayPerClickPower",
+    })
+
     accordion:AddToggle({
         Name = "Auto Instant Catch 🐟",
         Default = false,    
