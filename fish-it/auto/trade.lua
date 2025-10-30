@@ -59,12 +59,12 @@ function m:GetListItemsToTrade()
 
         local itemType = itemData.Type or "Unknown"
         -- if not table.find(Constants.TradableItemTypes, itemType) then
-        --     warning("Item type not tradable for item ID:")
+        --     warn("Item type not tradable for item ID:")
         --     continue
         -- end
 
         -- if table.find(Constants.PaidTradableItemTypes, itemType) then
-        --     warning("Item ID is in non-tradable list:")
+        --     warn("Item ID is in non-tradable list:")
         --     continue
         -- end
 
@@ -103,66 +103,54 @@ end
 
 function m:GetListInventoryItems()
     local inventoryItems = {}
-    print("Fetching inventory data...")
     local inventory = DataReplion:GetExpect({ "Inventory" })
+    local items = inventory and inventory["Items"] or {}
 
-    if not inventory or #inventory == 0 then
-        warning("No inventory data found")
-        return inventoryItems
-    end
-
-    print("Listing inventory items...")
-    for _, v in pairs(inventory) do
-        print("Processing item type:", _, "with", #v, "items")
-        for _, items in pairs(v) do
-            if not items.Id then
-                warning("Item ID not found")
-                continue
-            end
-
-            if not items.UUID then
-                warning("Item UUID not found for item ID:", items.Id)
-                continue
-            end
-
-            local itemData = self:FindItemById(items.Id)
-            if not itemData then
-                warning("Item data not found for item ID:", items.Id)
-                continue
-            end
-
-            table.insert(inventoryItems, {
-                UUID = items.UUID,
-                Id = items.Id,
-                Name = itemData.Name or "Unknown",
-                Type = itemData.Type or "Unknown",
-                Description = itemData.Description or "No Description",
-                Rarity = itemData.Rarity or "Unknown",
-                RarityIndex = itemData.RarityIndex or 100,
-                Favorited = items.Favorited or false,
-                Metadata = items.Metadata or {},
-            })
+    for _, item in pairs(items) do
+        if not item.Id then
+            warn("Item ID not found")
+            continue
         end
+
+        if not item.UUID then
+            warn("Item UUID not found for item ID:", item.Id)
+            continue
+        end
+
+        local itemData = self:FindItemById(item.Id)
+        if not itemData then
+            warn("Item data not found for item ID:", item.Id)
+            continue
+        end
+
+        table.insert(inventoryItems, {
+            UUID = item.UUID,
+            Id = item.Id,
+            Name = itemData.Name or "Unknown",
+            Type = itemData.Type or "Unknown",
+            Description = itemData.Description or "No Description",
+            Rarity = itemData.Rarity or "Unknown",
+            RarityIndex = itemData.RarityIndex or 100,
+            Favorited = item.Favorited or false,
+            Metadata = item.Metadata or {},
+        })
     end
 
     return inventoryItems
 end
 
 function m:StartAutoGive()
-    print("Starting Auto Give Items...")
     if not Window:GetConfigValue("AutoGiveItems") then
         warn("Auto Give Items: Feature is disabled.")
         return
     end
 
-    print("Preparing to start Auto Give Items...")
     local userId = Window:GetConfigValue("GiveToPlayer") or 0
     if userId == 0 then
         warn("Auto Give Items: No UserId specified to give items to.")
         return
     end
 
-    print(string.format("Auto Give Items: Giving items to UserId: %d", userId))
     local itemName = Window:GetConfigValue("GiveItem") or {}
     local minRarity = Window:GetConfigValue("GiveMinRarityItems") or nil
     local dontGiveFavorite = Window:GetConfigValue("DontGiveFavoriteItems") or false
@@ -172,56 +160,60 @@ function m:StartAutoGive()
         return
     end
 
-    --TODO: Bug fixing here (Proccess stop in here)
-    print("Starting Auto Give Items...")
     local inventoryItems = self:GetListInventoryItems()
     local itemsToGive = {}
 
     print(string.format("Found %d tradable items in inventory.", #inventoryItems))
     for _, itemDetail in pairs(inventoryItems) do
         if dontGiveFavorite and itemDetail.Favorited then
-            print(string.format("Skipping favorite item: %s", itemDetail.Name))
             continue
         end
 
         if table.find(itemName, itemDetail.Name) then
-            print(string.format("Giving item by name: %s", itemDetail.Name))
             table.insert(itemsToGive, itemDetail)
             continue
         end
 
-        if itemDetail.Type ~= "Fishes" then
+        if itemDetail.Type ~= "Fish" then
             continue
         end
 
         if itemDetail.RarityIndex and minRarity and itemDetail.RarityIndex >= minRarity then
-            print(string.format("Giving item by minimum rarity: %s", itemDetail.Name))
             table.insert(itemsToGive, itemDetail)
             continue
         end
     end
 
     print(string.format("Total items to give: %d", #itemsToGive))
+    local currentIndex = 1
     while Window:GetConfigValue("AutoGiveItems") and #itemsToGive > 0 do
-        print(string.format("Giving item: %s (UUID: %s)", itemDetail.Name, itemDetail.UUID))
+        if currentIndex > #itemsToGive then
+            break
+        end
+        
+        if itemsToGive[currentIndex].UUID == nil then
+            warn("Item UUID is nil, skipping item.")
+            currentIndex = currentIndex + 1
+            continue
+        end
+
         local success, data = Net:RemoteFunction("InitiateTrade"):InvokeServer(
             userId,
-            itemDetail.UUID
+            itemsToGive[currentIndex].UUID
         )
 
         if success then
-            local itemDetail = table.remove(itemsToGive, 1)
-
-            print(string.format("Successfully gave item: %s", itemDetail.Name))
+            currentIndex = currentIndex + 1
+            print(string.format("Successfully gave item: %s", itemsToGive[currentIndex].UUID))
         else
-            warn(string.format("Failed to give item: %s", itemDetail.Name))
+            warn(string.format("Failed to give item: %s", itemsToGive[currentIndex].UUID))
         end
 
         if data then
             print("Server Response:", data)
         end
 
-        task.wait(2)  -- Small delay to prevent spamming the server
+        task.wait(4)  -- Small delay to prevent spamming the server
     end
 end
 

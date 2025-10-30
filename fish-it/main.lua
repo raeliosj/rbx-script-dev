@@ -1,3 +1,5 @@
+repeat wait() until game:IsLoaded() and game:FindFirstChild("CoreGui") and pcall(function() return game.CoreGui end)
+
 -- Main entry point
 local EzUI = loadstring(game:HttpGet('https://github.com/alfin-efendy/ez-rbx-ui/releases/latest/download/ez-rbx-ui.lua'))()
 -- Import local modules
@@ -33,7 +35,8 @@ local NotificationUI = require('notification/ui.lua')
 local DisableModule = require('misc/disable.lua')
 local MiscUI = require('misc/ui.lua')
 
-local configFolder = "EzHub/EzFish-It"
+local playerName = CoreModule.LocalPlayer.Name or "Unknown"
+local configFolder = string.format("EzHub/%s/EzFish-It", playerName)
 
 -- Initialize window
 local window = EzUI:CreateNew({

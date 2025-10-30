@@ -38,7 +38,7 @@ function m:SendWebhook(_fishId, _fishDetails)
         return
     end
 
-    local fishData = ItemUtility.GetItemDataFromItemType("Fishes", _fishId)
+    local fishData = ItemUtility.GetItemDataFromItemType("Fish", _fishId)
     if not fishData or not fishData.Data then
         return
     end

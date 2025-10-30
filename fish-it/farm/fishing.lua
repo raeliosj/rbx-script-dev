@@ -397,6 +397,11 @@ function m:StartAutoCharge()
                 if minigameResult == "Already fishing!" then
                     break
                 end
+
+                if minigameResult == "No fishing rod equipped!" then
+                    EquipToolFromHotbar:FireServer(1)
+                    continue
+                end
                 
                 if not success then
                     print("AutoInstantCatch: Failed to start fishing minigame, retrying...", minigameResult)
@@ -423,7 +428,6 @@ function m:StartAutoCharge()
         if Window:GetConfigValue("AutoPerfectCast") then
             delayRetry = delayRetry + 0.2
         end
-        -- delayRetry = delayRetry + randomJitter
 
         task.wait(delayRetry)
     end

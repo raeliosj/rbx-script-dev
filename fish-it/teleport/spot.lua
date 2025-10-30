@@ -21,6 +21,7 @@ local FishingSpots = {
     },
     {
         Name = "Machine",
+        Mapping = "Ocean",
         Position = CFrame.new(-1457.8512, 14.7337818, 1843.03955, 0.199816436, -8.31816536e-08, -0.979833364, 1.09653149e-08, 1, -8.26575288e-08, 0.979833364, 5.77215165e-09, 0.199816436),
     },
     {
@@ -50,6 +51,14 @@ local FishingSpots = {
     {
         Name = "Mount Hallow",
         Position = CFrame.new(2166.75806, 80.541008, 3289.41211, -0.499248028, 7.93332902e-08, 0.866459131, 5.98914767e-08, 1, -5.70512668e-08, -0.866459131, 2.34107826e-08, -0.499248028),
+    },
+    {
+        Name = "Crystal Cavern",
+        Position = CFrame.new(-1772.97168, -421.792725, 7172.96924, 0.00778091652, -1.18147071e-07, 0.999969721, 5.14326999e-08, 1, 1.17750446e-07, -0.999969721, 5.05149345e-08, 0.00778091652),
+    },
+    {
+        Name = "Crystal Falls",
+        Position = CFrame.new(-2024.2417, -440.000519, 7428.7627, 0.861011028, 3.60083767e-08, -0.508586287, -2.72354619e-08, 1, 2.46926479e-08, 0.508586287, -7.40905914e-09, 0.861011028),
     }
 }
 
@@ -58,7 +67,8 @@ function m:GetAllFishingSpots()
     local spots = {}
 
     for _, spot in pairs(FishingSpots) do
-        local areaDetail = areas[spot.Name]
+        local areaName = spot.Mapping or spot.Name
+        local areaDetail = areas[areaName]
 
         if not areaDetail then
             warn("Area detail not found for spot:", spot.Name)
