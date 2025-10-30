@@ -83,7 +83,7 @@ end
 
 function m:IsMaxInventory()
     if DataReplion:GetExpect("EquippedType") ~= "Fishing Rods" then
-        warn("No fishing rod equipped!")
+        Window:ShowWarning("No fishing rod equipped!")
         IsFishingActive = false
         return
     end
@@ -95,7 +95,7 @@ function m:isRodEquipped()
     local autoEquip = Window:GetConfigValue("AutoEquipFishingRod") or false
     
     if not equippedId then
-        warn("No item is currently equipped.")
+        Window:ShowWarning("No item is currently equipped.")
         return false
     end
 	
@@ -104,7 +104,7 @@ function m:isRodEquipped()
     end)
 
     if not inventoryItem then
-        warn("Equipped item not found in inventory.")
+        Window:ShowWarning("Equipped item not found in inventory.")
         return false
     end
     
@@ -118,7 +118,7 @@ function m:isRodEquipped()
         return true
     end
 
-    warn("Equipped item is not a fishing rod.")
+    Window:ShowWarning("Equipped item is not a fishing rod.")
     return true
 end
 
@@ -227,7 +227,12 @@ function m:CreateConnections()
                 clickProgress = clickProgress + (CurrentMinigameData.FishingClickPower)
             end
 
-            FishingCompletedEvent:FireServer()
+            local success = pcall(function()
+                FishingCompletedEvent:FireServer()
+            end)
+            if not success then
+                Window:ShowWarning("Failed to complete fishing minigame.")
+            end
         end)
     end
 
@@ -247,6 +252,7 @@ function m:GetRayCastPosition()
     local rootPart = Core:GetHumanoidRootPart()
     if not rootPart then
         warn("HumanoidRootPart not found!")
+
         self:SetIsFishingActive(false)
         return
     end
@@ -370,27 +376,30 @@ function m:StartAutoCharge()
     local raycastResult = self:GetRayCastPosition()
     while Window:GetConfigValue("AutoInstantCatch") and Core.IsWindowOpen do
         if not raycastResult or not raycastResult.Instance then
+            Window:ShowWarning("Failed to get raycast result!")
             task.wait(1)
             raycastResult = self:GetRayCastPosition()
             continue
         end
 
         local AutoInstantCatchLoop = coroutine.create(function()
+            local isRetrying = false
             while Window:GetConfigValue("AutoInstantCatch") and Core.IsWindowOpen do
                 CancelFishingInputsRemote:InvokeServer()
-                local castPower = self:CalculateCastPower()
                 
                 local chargeTime = workspace:GetServerTimeNow()
                 local success = ChargeFishingRodRemote:InvokeServer(chargeTime)
                 if not success then
-                    print("AutoInstantCatch: Failed to charge fishing rod, retrying...")
+                    Window:ShowWarning("Retrying...", "Failed to charge fishing rod")
+                    isRetrying = true
                     continue
                 end
                 
-                if Window:GetConfigValue("AutoPerfectCast") then
+                if Window:GetConfigValue("AutoPerfectCast") and not isRetrying then
                     task.wait(0.2)
                 end
                 
+                local castPower = self:CalculateCastPower()
                 local startTime = workspace:GetServerTimeNow()
                 local success, minigameResult = RequestFishingMinigameStartedRemote:InvokeServer(raycastResult.Position.Y, castPower, startTime)
                 
@@ -404,7 +413,8 @@ function m:StartAutoCharge()
                 end
                 
                 if not success then
-                    print("AutoInstantCatch: Failed to start fishing minigame, retrying...", minigameResult)
+                    isRetrying = true
+                    Window:ShowWarning("Retrying...", string.format("Failed to start fishing minigame, %s", minigameResult))
                     continue
                 end
 

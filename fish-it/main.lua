@@ -27,6 +27,10 @@ local EnchantModule = require('auto/enchant.lua')
 local TradeModule = require('auto/trade.lua')
 local AutoUI = require('auto/ui.lua')
 
+-- Shop modules
+local TravelingMerchantModule = require('shop/traveling_merchant.lua')
+local ShopUI = require('shop/ui.lua')
+
 -- Notification modules
 local WebhookNotificationModule = require('notification/webhook.lua')
 local NotificationUI = require('notification/ui.lua')
@@ -97,6 +101,9 @@ EventsModule:Init(window, CoreModule)
 TradeModule:Init(window, CoreModule)
 EnchantModule:Init(window, CoreModule, PlayerModule)
 
+-- Shop
+TravelingMerchantModule:Init(window, CoreModule)
+
 -- Notification
 WebhookNotificationModule:Init(window, CoreModule, Discord)
 
@@ -106,5 +113,6 @@ DisableModule:Init(window, CoreModule)
 FarmUI:Init(window, CoreModule, FishingModule, InventoryModule)
 TeleportUI:Init(window, CoreModule, PlayerModule, NPCModule, SpotModule, customPositionConfig, TeleportEvent)
 AutoUI:Init(window, CoreModule, EventsModule, EnchantModule, TradeModule)
+ShopUI:Init(window, CoreModule, TravelingMerchantModule)
 NotificationUI:Init(window, CoreModule, WebhookNotificationModule)
 MiscUI:Init(window, CoreModule, DisableModule)

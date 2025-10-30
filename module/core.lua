@@ -55,6 +55,10 @@ function m:HopServer()
     end
 end
 
+function m:FormatNumber(number)
+    return tostring(number):reverse():gsub("%d%d%d", "%1."):reverse():gsub("^%.", "")
+end
+
 -- Table to track active loops
 local activeLoops = {}
 
