@@ -32,33 +32,6 @@ function m:FishingSection(tab)
         Default = false,
     })
 
-    accordion:AddToggle({
-        Name = "Auto Equip Fishing Rod 🎣",
-        Default = false,
-        Flag = "AutoEquipFishingRod",
-    })
-
-    accordion:AddToggle({
-        Name = "Auto Perfect Cast 🎯",
-        Default = false,
-        Flag = "AutoPerfectCast",
-    })
-
-    accordion:AddToggle({
-        Name = "Auto Fishing 🎣",
-        Default = false,
-        Flag = "AutoFishing",
-        Callback = function(value)
-            if value then
-                Fishing:StartAutoFishing()
-            else
-                Fishing:StopAutoFishing()
-            end
-        end
-    })
-
-    accordion:AddSeparator()
-
     accordion:AddNumberBox({
         Name = "Delay between casts ⛵",
         Placeholder = "Delay between casts...",
@@ -81,13 +54,24 @@ function m:FishingSection(tab)
         Flag = "AutoInstantCatchDelayPerClickPower",
     })
 
+    accordion:AddSelectBox({
+        Name = "Fishing Method to Use 🎣",
+        Options = {"Fast", "Instant"},
+        Default = "",
+        Placeholder = "Select Fishing Method",
+        MultiSelect = false,
+        Flag = "AutoFishingMethod",
+    })
+
+    accordion:AddSeparator()
+    
     accordion:AddToggle({
-        Name = "Auto Instant Catch 🐟",
-        Default = false,    
-        Flag = "AutoInstantCatch",
+        Name = "Auto Fishing 🎣",
+        Default = false,
+        Flag = "AutoFishing",
         Callback = function(value)
             if value then
-                Fishing:StartAutoCharge()
+                Fishing:StartAutoFishing()
             else
                 Fishing:StopAutoFishing()
             end

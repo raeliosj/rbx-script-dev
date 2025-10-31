@@ -70,15 +70,6 @@ function m:Init(_window, _core)
             self:StartAutoFishing()
         end
     )
-
-    Core:MakeLoop(
-        function()
-            return Window:GetConfigValue("AutoInstantCatch")
-        end, 
-        function()
-            self:StartAutoCharge()
-        end
-    )
 end
 
 function m:IsMaxInventory()
@@ -221,10 +212,11 @@ function m:CreateConnections()
 
             local clickProgress = 0
             local delayClick = math.max(Window:GetConfigValue("AutoInstantCatchDelayPerClickPower") or 0.25, 0.05)
+            local currentFishingPower = CurrentMinigameData.FishingClickPower or 0.1
             while clickProgress < 1 do
                 task.wait(delayClick)
                 self:SetIsFishingActive(true)
-                clickProgress = clickProgress + (CurrentMinigameData.FishingClickPower)
+                clickProgress = clickProgress + currentFishingPower
             end
 
             local success = pcall(function()
@@ -243,7 +235,19 @@ function m:CreateConnections()
                 return
             end
             self:SetIsFishingActive(false)
-            self:StartAutoFishing()
+            if Window:GetConfigValue("AutoFishingMethod") == "Fast" then
+                self:StartAutoFastFishing()
+            end
+        end)
+    end
+
+    if not FishingMinigameChangedConnection then
+        FishingMinigameChangedConnection = Net:RemoteEvent("FishingMinigameChanged").OnClientEvent:Connect(function(changeType, minigameData)
+            print("Fishing minigame changed:", changeType)
+
+            for k, v in pairs(minigameData or {}) do
+                print("  ", k, v)
+            end
         end)
     end
 end
@@ -272,36 +276,35 @@ function m:GetRayCastPosition()
     return raycastResult
 end
 
-function m:StartAutoFishing()
-    if not Window:GetConfigValue("AutoFishing") or self:GetIsFishingActive() then
+function m:FishingUI(enabled)
+    Core.LocalPlayer.PlayerGui.Charge.Main.Visible = enabled
+    Core.LocalPlayer.PlayerGui.Fishing.Main.Visible = enabled
+end
+
+function m:SetServerAutoFishing(enabled)
+    if enabled and not DataReplion:GetExpect("AutoFishing") then
+        Net:RemoteFunction("UpdateAutoFishingState"):InvokeServer(true)
+    elseif not enabled and DataReplion:GetExpect("AutoFishing") then
+        Net:RemoteFunction("UpdateAutoFishingState"):InvokeServer(false)
+    end
+end
+
+function m:StartAutoFastFishing()
+    if not Window:GetConfigValue("AutoFishing") or
+        self:GetIsFishingActive() or 
+        Window:GetConfigValue("AutoFishingMethod") ~= "Fast"
+    then
         return
     end
 
     self:CreateConnections()
-    local autoEquip = Window:GetConfigValue("AutoEquipFishingRod") or false
+    self:FishingUI(false)
 
-    if autoEquip and not self:isRodEquipped() then
+    if DataReplion:GetExpect("EquippedType") ~= "Fishing Rods" then
         EquipToolFromHotbar:FireServer(1)
         return
     end
 
-    if not self:isRodEquipped() then
-        warn("No fishing rod equipped!")
-        self:SetIsFishingActive(false)
-        return
-    end
-
-    local autoSell = Window:GetConfigValue("AutoSellFish") or false
-    if self:IsMaxInventory() and autoSell == true then
-        FishingController:NoInventorySpace()
-    end
-    
-    if self:IsMaxInventory() then
-        warn("Inventory full, cannot fish!")
-        self:SetIsFishingActive(false)
-        return        
-    end
-    
     local raycastResult = self:GetRayCastPosition()
     if not raycastResult or not raycastResult.Instance then
         warn("Failed rod cast!")
@@ -310,18 +313,14 @@ function m:StartAutoFishing()
         return
     end
 
-    
-    while Window:GetConfigValue("AutoFishing") and Core.IsWindowOpen do
+    self:SetServerAutoFishing(true)
+
+    while Window:GetConfigValue("AutoFishing") and Core.IsWindowOpen and Window:GetConfigValue("AutoFishingMethod") == "Fast" do
         self:SetIsFishingActive(true)
         local chargeTime = workspace:GetServerTimeNow()
         local castPower = self:CalculateCastPower()
         local delayCast = self:GetElapsedFromPower(chargeTime, castPower)
         ChargeFishingRodRemote:InvokeServer(chargeTime - delayCast)
-
-        if Window:GetConfigValue("AutoPerfectCast") then
-            -- task.wait(delayCast)
-            task.wait(0.2)
-        end
 
         local startTime = workspace:GetServerTimeNow()
         local success, minigameData = RequestFishingMinigameStartedRemote:InvokeServer(raycastResult.Position.Y, castPower, startTime)
@@ -331,98 +330,95 @@ function m:StartAutoFishing()
         end
         CancelFishingInputsRemote:InvokeServer()
     end
-end
-
-function m:StopAutoFishing()
-    IsMinigameActive = false
-    self:SetIsFishingActive(false)
-
-    CancelFishingInputsRemote:InvokeServer()
-    
-    if FishCaughtConnection then
-        FishCaughtConnection:Disconnect()
-        FishCaughtConnection = nil
-    end
-
-    if TextEffectConnection then
-        TextEffectConnection:Disconnect()
-        TextEffectConnection = nil
-    end
+    self:SetServerAutoFishing(false)
 end
 
 function m:GetNormalizedDelay(baseDelay, power)
 	return baseDelay / power
 end
 
-function m:StartAutoCharge()
-    if not Window:GetConfigValue("AutoInstantCatch") or self:GetIsFishingActive() then
+function m:StartAutoInstantFishing()
+    if not Window:GetConfigValue("AutoFishing") or
+        self:GetIsFishingActive() or 
+        Window:GetConfigValue("AutoFishingMethod") ~= "Instant" 
+    then
         return
     end
 
+    self:FishingUI(false)
     self:CreateConnections()
 
-    local autoEquip = Window:GetConfigValue("AutoEquipFishingRod") or false
-    if autoEquip and not self:isRodEquipped() then
+    if DataReplion:GetExpect("EquippedType") ~= "Fishing Rods" then
         EquipToolFromHotbar:FireServer(1)
         return
     end
 
-    if not self:isRodEquipped() then
-        warn("No fishing rod equipped!")
-        self:SetIsFishingActive(false)
-        return
-    end
-
     local raycastResult = self:GetRayCastPosition()
-    while Window:GetConfigValue("AutoInstantCatch") and Core.IsWindowOpen do
+    while Window:GetConfigValue("AutoFishing") and Core.IsWindowOpen do
         if not raycastResult or not raycastResult.Instance then
             Window:ShowWarning("Failed to get raycast result!")
             task.wait(1)
             raycastResult = self:GetRayCastPosition()
             continue
         end
+        self:SetIsFishingActive(true)
 
         local AutoInstantCatchLoop = coroutine.create(function()
-            local isRetrying = false
-            while Window:GetConfigValue("AutoInstantCatch") and Core.IsWindowOpen do
+            local totalRetry = 0
+            self:SetServerAutoFishing(true)
+
+            while Window:GetConfigValue("AutoFishing") and 
+                Core.IsWindowOpen and 
+                Window:GetConfigValue("AutoFishingMethod") == "Instant" 
+            do
+                if totalRetry >= 10 then
+                    break
+                end
                 CancelFishingInputsRemote:InvokeServer()
-                
+
                 local chargeTime = workspace:GetServerTimeNow()
                 local success = ChargeFishingRodRemote:InvokeServer(chargeTime)
                 if not success then
-                    Window:ShowWarning("Retrying...", "Failed to charge fishing rod")
-                    isRetrying = true
+                    Window:ShowWarning(string.format("Retrying... %s", tostring(totalRetry)), "Failed to charge fishing rod")
+                    totalRetry = totalRetry + 1
                     continue
                 end
-                
-                if Window:GetConfigValue("AutoPerfectCast") and not isRetrying then
-                    task.wait(0.2)
-                end
-                
+
                 local castPower = self:CalculateCastPower()
                 local startTime = workspace:GetServerTimeNow()
                 local success, minigameResult = RequestFishingMinigameStartedRemote:InvokeServer(raycastResult.Position.Y, castPower, startTime)
                 
+                if totalRetry == 0 then
+                    self:SetServerAutoFishing(false)
+                end
+                
                 if minigameResult == "Already fishing!" then
                     break
                 end
-
+                
                 if minigameResult == "No fishing rod equipped!" then
                     EquipToolFromHotbar:FireServer(1)
                     continue
                 end
                 
                 if not success then
-                    isRetrying = true
-                    Window:ShowWarning("Retrying...", string.format("Failed to start fishing minigame, %s", minigameResult))
+                    totalRetry = totalRetry + 1
+                    Window:ShowWarning(string.format("Retrying... %s", tostring(totalRetry)), string.format("Failed to start fishing minigame, %s", tostring(minigameResult)))
                     continue
                 end
-
+                
                 if minigameResult.FishingClickPower then
                     CurrentMinigameData = minigameResult
                 end
                 
                 break
+            end
+
+            if totalRetry >= 10 then
+                self:SetServerAutoFishing(false)
+                CancelFishingInputsRemote:InvokeServer()
+                Window:ShowError("Max retries reached for instant fishing.", "Auto Instant Fishing Stopped")
+                task.wait(3)
             end
         end)
 
@@ -443,6 +439,43 @@ function m:StartAutoCharge()
     end
 
     self:StopAutoFishing()
+end
+
+function m:StopAutoFishing()
+    self:SetServerAutoFishing(false)
+
+    IsMinigameActive = false
+    self:SetIsFishingActive(false)
+
+    CancelFishingInputsRemote:InvokeServer()
+    
+    if FishCaughtConnection then
+        FishCaughtConnection:Disconnect()
+        FishCaughtConnection = nil
+    end
+
+    if TextEffectConnection then
+        TextEffectConnection:Disconnect()
+        TextEffectConnection = nil
+    end
+
+    if FishingMinigameChangedConnection then
+        FishingMinigameChangedConnection:Disconnect()
+        FishingMinigameChangedConnection = nil
+    end
+
+    CurrentMinigameData = nil
+    self:FishingUI(true)
+end
+
+function m:StartAutoFishing()
+    if Window:GetConfigValue("AutoFishingMethod") == "Fast" then
+        self:StartAutoFastFishing()
+    elseif Window:GetConfigValue("AutoFishingMethod") == "Instant" then
+        self:StartAutoInstantFishing()
+    else
+        Window:ShowWarning("Please select a valid fishing method!")
+    end
 end
 
 return m

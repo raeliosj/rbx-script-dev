@@ -58,15 +58,13 @@ function m:GetListItemsToTrade()
         end
 
         local itemType = itemData.Type or "Unknown"
-        -- if not table.find(Constants.TradableItemTypes, itemType) then
-        --     warn("Item type not tradable for item ID:")
-        --     continue
-        -- end
+        if not table.find(Constants.TradableItemTypes, itemType) then
+            continue
+        end
 
-        -- if table.find(Constants.PaidTradableItemTypes, itemType) then
-        --     warn("Item ID is in non-tradable list:")
-        --     continue
-        -- end
+        if table.find(Constants.PaidTradableItemTypes, itemType) then
+            continue
+        end
 
         local tierIndex = itemData.Tier or 100
         local tierDetail = TierUtility:GetTier(tierIndex)
