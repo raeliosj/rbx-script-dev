@@ -2,6 +2,5 @@
 
 how to use
 ```lua
-key ="";
-loadstring(game:HttpGet("https://raw.githubusercontent.com/alfin-efendy/rbx-script/refs/heads/main/gag.lua"))()
+loadstring(game:HttpGet("https://github.com/alfin-efendy/rbx-script-dev/releases/latest/download/loader.lua"))()
 ```

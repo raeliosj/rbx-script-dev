@@ -42,6 +42,15 @@ function m:DisableSection(tab)
             Disable:DisablePlayerName()
         end
     })
+
+    accordion:AddToggle({
+        Name = "Remove Notifications 🔕",
+        Default = false,
+        Flag = "DisableNotifications",
+        Callback = function(value)
+            Disable:DisableNotifications()
+        end
+    })
 end
 
 function m:ServerSection(tab)

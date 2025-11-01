@@ -23,4 +23,12 @@ function m:DisablePlayerName()
     Core:GetHumanoidRootPart().Overhead.Content.Header.Visible = not isDisabled
 end
 
+function m:DisableNotifications()
+    local isDisabled = Window:GetConfigValue("DisableNotifications") or false
+    local notification = Core.LocalPlayer.PlayerGui["Text Notifications"].Frame
+    if notification then
+        notification.Visible = not isDisabled
+    end
+end
+
 return m

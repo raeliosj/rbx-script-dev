@@ -77,6 +77,14 @@ function m:FishingSection(tab)
             end
         end
     })
+
+    accordion:AddButton({
+        Name = "Stop Auto Fishing Now 🛑",
+        Variant = "warning",
+        Callback = function()
+            Fishing:StopAutoFishing()
+        end
+    })
 end
 
 function m:SellSection(tab)

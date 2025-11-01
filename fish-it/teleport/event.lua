@@ -63,7 +63,6 @@ function m:FindEventPosition(menuRings, selectedEvent)
         if propsModel.Name ~= "Props" then
             continue
         end
-        print("Adding props from model: " .. propsModel.Name)
         table.insert(props, table.unpack(propsModel:GetChildren()))
     end
     for _, prop in pairs(props) do
@@ -71,10 +70,8 @@ function m:FindEventPosition(menuRings, selectedEvent)
             continue
         end
 
-        print("Found event prop: " .. prop.Name)
         local primaryPart = prop.PrimaryPart or nil
         if primaryPart then
-            print("Using primary part: " .. primaryPart.Name)
             primaryPart.CanCollide = true
         end
 
