@@ -50,8 +50,8 @@ local GhoulUI = require('event/ghoul/ui.lua')
 
 -- Notification module
 local NotificationUI = require('notification/ui.lua')
-
-local configFolder = "EzHub/EzGarden"
+local playerName = CoreModule.LocalPlayer.Name or "Unknown"
+local configFolder = string.format("EzHub/%s/EzGarden", playerName)
 
 -- Initialize window
 local window = EzUI:CreateNew({
@@ -67,6 +67,8 @@ local window = EzUI:CreateNew({
 
 -- Update window close callback
 window:SetCloseCallback(function()
+    CoreModule.IsWindowOpen = false
+
     -- Remove Anti-AFK connections
     PlayerModule:RemoveAntiAFK()
 
@@ -87,6 +89,8 @@ petTeamsConfig:Load()
 -- Wait load config
 task.wait(1) -- Ensure config is loaded
 
+-- Core
+CoreModule.IsWindowOpen = true
 -- Player
 PlayerModule:Init(CoreModule)
 

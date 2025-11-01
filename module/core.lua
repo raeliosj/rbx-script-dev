@@ -71,26 +71,18 @@ function m:MakeLoop(_isEnableFunc, _func, _delay)
     end
 
     local loop = coroutine.create(function()
-        local lastCheck = 0
-        local checkInterval = 5 -- Check config every 5 seconds instead of every 0.1 seconds
-
         while self.IsWindowOpen do
-            local currentTime = tick()
             local isEnabled = false
 
-            -- Only check config periodically to reduce overhead
-            if currentTime - lastCheck >= checkInterval then
-                -- Handle both function and direct value
-                if type(_isEnableFunc) == "function" then
-                    isEnabled = _isEnableFunc()
-                else
-                    isEnabled = _isEnableFunc
-                end
-                lastCheck = currentTime
+            -- Handle both function and direct value
+            if type(_isEnableFunc) == "function" then
+                isEnabled = _isEnableFunc()
+            else
+                isEnabled = _isEnableFunc
             end
 
             if not isEnabled then
-                task.wait(5) -- Longer wait when disabled
+                task.wait(1) -- Wait when disabled
                 continue
             end
 

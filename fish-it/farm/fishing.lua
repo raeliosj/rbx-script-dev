@@ -315,26 +315,78 @@ function m:StartAutoFastFishing()
 
     self:SetServerAutoFishing(true)
 
-    while Window:GetConfigValue("AutoFishing") and Core.IsWindowOpen and Window:GetConfigValue("AutoFishingMethod") == "Fast" do
-        self:SetIsFishingActive(true)
-        local chargeTime = workspace:GetServerTimeNow()
-        local castPower = self:CalculateCastPower()
-        local delayCast = self:GetElapsedFromPower(chargeTime, castPower)
-        ChargeFishingRodRemote:InvokeServer(chargeTime - delayCast)
-
-        local startTime = workspace:GetServerTimeNow()
-        local success, minigameData = RequestFishingMinigameStartedRemote:InvokeServer(raycastResult.Position.Y, castPower, startTime)
-        if success then
-            CurrentMinigameData = minigameData
-            break
-        end
-        CancelFishingInputsRemote:InvokeServer()
-    end
+    self:SetIsFishingActive(true)
+    local fishingLoop = self:CreateFishingLoop(raycastResult, 1)
+    coroutine.resume(fishingLoop)
+    
     self:SetServerAutoFishing(false)
 end
 
 function m:GetNormalizedDelay(baseDelay, power)
 	return baseDelay / power
+end
+
+function m:CreateFishingLoop(raycastResult, maxRetries)
+    maxRetries = maxRetries or 10
+    
+    local loop = coroutine.create(function()
+        local totalRetry = 0
+        self:SetServerAutoFishing(true)
+
+        while Window:GetConfigValue("AutoFishing") and Core.IsWindowOpen do
+            if totalRetry >= maxRetries then
+                break
+            end
+            
+            CancelFishingInputsRemote:InvokeServer()
+
+            local chargeTime = workspace:GetServerTimeNow()
+            local success = ChargeFishingRodRemote:InvokeServer(chargeTime)
+            if not success then
+                Window:ShowWarning(string.format("Retrying... %s", tostring(totalRetry)), "Failed to charge fishing rod")
+                totalRetry = totalRetry + 1
+                continue
+            end
+
+            local castPower = self:CalculateCastPower()
+            local startTime = workspace:GetServerTimeNow()
+            local success, minigameResult = RequestFishingMinigameStartedRemote:InvokeServer(raycastResult.Position.Y, castPower, startTime)
+            
+            if totalRetry == 0 then
+                self:SetServerAutoFishing(false)
+            end
+            
+            if minigameResult == "Already fishing!" then
+                break
+            end
+            
+            if minigameResult == "No fishing rod equipped!" then
+                EquipToolFromHotbar:FireServer(1)
+                continue
+            end
+            
+            if not success then
+                totalRetry = totalRetry + 1
+                Window:ShowWarning(string.format("Retrying... %s", tostring(totalRetry)), string.format("Failed to start fishing minigame, %s", tostring(minigameResult)))
+                continue
+            end
+            
+            if minigameResult and minigameResult.FishingClickPower then
+                CurrentMinigameData = minigameResult
+            end
+            
+            break
+        end
+
+        if totalRetry >= maxRetries then
+            self:SetServerAutoFishing(false)
+            CancelFishingInputsRemote:InvokeServer()
+            Window:ShowError("Max retries reached for fishing.", "Auto Fishing Stopped")
+            task.wait(3)
+        end
+    end)
+    
+    return loop
 end
 
 function m:StartAutoInstantFishing()
@@ -363,66 +415,8 @@ function m:StartAutoInstantFishing()
         end
         self:SetIsFishingActive(true)
 
-        local AutoInstantCatchLoop = coroutine.create(function()
-            local totalRetry = 0
-            self:SetServerAutoFishing(true)
-
-            while Window:GetConfigValue("AutoFishing") and 
-                Core.IsWindowOpen and 
-                Window:GetConfigValue("AutoFishingMethod") == "Instant" 
-            do
-                if totalRetry >= 10 then
-                    break
-                end
-                CancelFishingInputsRemote:InvokeServer()
-
-                local chargeTime = workspace:GetServerTimeNow()
-                local success = ChargeFishingRodRemote:InvokeServer(chargeTime)
-                if not success then
-                    Window:ShowWarning(string.format("Retrying... %s", tostring(totalRetry)), "Failed to charge fishing rod")
-                    totalRetry = totalRetry + 1
-                    continue
-                end
-
-                local castPower = self:CalculateCastPower()
-                local startTime = workspace:GetServerTimeNow()
-                local success, minigameResult = RequestFishingMinigameStartedRemote:InvokeServer(raycastResult.Position.Y, castPower, startTime)
-                
-                if totalRetry == 0 then
-                    self:SetServerAutoFishing(false)
-                end
-                
-                if minigameResult == "Already fishing!" then
-                    break
-                end
-                
-                if minigameResult == "No fishing rod equipped!" then
-                    EquipToolFromHotbar:FireServer(1)
-                    continue
-                end
-                
-                if not success then
-                    totalRetry = totalRetry + 1
-                    Window:ShowWarning(string.format("Retrying... %s", tostring(totalRetry)), string.format("Failed to start fishing minigame, %s", tostring(minigameResult)))
-                    continue
-                end
-                
-                if minigameResult.FishingClickPower then
-                    CurrentMinigameData = minigameResult
-                end
-                
-                break
-            end
-
-            if totalRetry >= 10 then
-                self:SetServerAutoFishing(false)
-                CancelFishingInputsRemote:InvokeServer()
-                Window:ShowError("Max retries reached for instant fishing.", "Auto Instant Fishing Stopped")
-                task.wait(3)
-            end
-        end)
-
-        coroutine.resume(AutoInstantCatchLoop)
+        local fishingLoop = self:CreateFishingLoop(raycastResult, 10)
+        coroutine.resume(fishingLoop)
 
         local fishingArea = Core.LocalPlayer.PlayerGui.Events.Frame.Location.Label.Text or "Ocean"
         local areaData = Areas[fishingArea]

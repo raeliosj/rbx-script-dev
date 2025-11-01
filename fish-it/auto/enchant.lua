@@ -68,7 +68,7 @@ end
 function m:EquipEnchantStone(unequipItemUUID)
     local enchantStones = self:ListInventoryEnchantStones()
     if #enchantStones == 0 then
-        warning("No enchant stones found in inventory.")
+        Window:ShowWarning("No enchant stones found in inventory.")
         return
     end
 
@@ -84,7 +84,7 @@ function m:GetCurrentRodDetails()
     end)
     
     if not inventoryItem then
-        warning("No item equipped in the first slot.")
+        Window:ShowWarning("No item equipped in the first slot.")
         return nil
     end
 
@@ -150,7 +150,7 @@ function m:StartAutoEnchant1()
     local targetEnchant = Window:GetConfigValue("TargetEnchant1") or {}
     local currentRod = self:GetCurrentRodDetails()
     if not currentRod then
-        warning("No fishing rod equipped.")
+        Window:ShowWarning("No fishing rod equipped.")
         return
     end
 

@@ -48,6 +48,10 @@ jobs:
             
             echo "✓ Successfully obfuscated $entity to output/$output"
           done
+          
+          # Copy loader.lua to output directory
+          cp loader.lua output/loader.lua
+          echo "✓ Copied loader.lua to output/"
 
       - name: Get release version
         id: get_version
@@ -69,11 +73,3 @@ jobs:
           files: output/*
           draft: false
           prerelease: false
-      
-      - name: Checkout target repository
-        uses: actions/checkout@v4
-        with:
-          repository: alfin-efendy/rbx-script
-          token: ${{ secrets.RBX_SCRIPT_DEPLOY }}
-          path: rbx-script
-          fetch-depth: 0

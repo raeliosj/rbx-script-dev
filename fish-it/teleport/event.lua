@@ -39,7 +39,7 @@ function m:GetListEvents()
     for eventName, _ in pairs(Events) do
         local event = EventUtility:GetEvent(eventName)
         if not event then
-            warning("Event not found: " .. eventName)
+            Window:ShowWarning("Event not found: " .. eventName)
             continue
         end
 
