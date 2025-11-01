@@ -140,7 +140,7 @@ function m:SubmitRebirth(fruit)
     end
 
     local rebirthTask = function()
-        Core.GameEvents.BuyRebirth:FireServer()
+        Core.ReplicatedStorage.GameEvents.BuyRebirth:FireServer()
 
         wait(1)
     end

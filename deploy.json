@@ -2,5 +2,9 @@
     {
         "entity": "grow-a-garden/main.lua",
         "output": "gag.lua"
+    },
+    {
+        "entity": "fish-it/main.lua",
+        "output": "fish-it.lua"
     }
 ]

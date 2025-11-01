@@ -11,12 +11,10 @@ m.VirtualUser = game:GetService("VirtualUser")
 m.MarketplaceService = game:GetService("MarketplaceService")
 m.PlaceId = game.PlaceId
 m.JobId = game.JobId
+m.IsWindowOpen = false
 
 -- Player reference
 m.LocalPlayer = m.Players.LocalPlayer
-
--- References
-m.GameEvents = m.ReplicatedStorage.GameEvents
 
 -- Dynamic getters
 function m:GetCharacter()
@@ -57,36 +55,39 @@ function m:HopServer()
     end
 end
 
+function m:FormatNumber(number)
+    return tostring(number):reverse():gsub("%d%d%d", "%1."):reverse():gsub("^%.", "")
+end
+
 -- Table to track active loops
 local activeLoops = {}
 
-function m:MakeLoop(_isEnableFunc, _func)
-    local loop = coroutine.create(function()
-        local lastCheck = 0
-        local checkInterval = 5 -- Check config every 5 seconds instead of every 0.1 seconds
+function m:MakeLoop(_isEnableFunc, _func, _delay)
+    local function resolveDelay()
+        if type(_delay) == "function" then
+            return _delay()
+        end
+        return _delay or 3 -- Ensure default delay is applied
+    end
 
-        while true do
-            local currentTime = tick()
+    local loop = coroutine.create(function()
+        while self.IsWindowOpen do
             local isEnabled = false
 
-            -- Only check config periodically to reduce overhead
-            if currentTime - lastCheck >= checkInterval then
-                -- Handle both function and direct value
-                if type(_isEnableFunc) == "function" then
-                    isEnabled = _isEnableFunc()
-                else
-                    isEnabled = _isEnableFunc
-                end
-                lastCheck = currentTime
+            -- Handle both function and direct value
+            if type(_isEnableFunc) == "function" then
+                isEnabled = _isEnableFunc()
+            else
+                isEnabled = _isEnableFunc
             end
 
             if not isEnabled then
-                task.wait(5) -- Longer wait when disabled
+                task.wait(1) -- Wait when disabled
                 continue
             end
 
             _func()
-            task.wait(3) -- Longer wait between executions (was 0.1, now 3 seconds)
+            task.wait(resolveDelay()) -- Use resolved delay
         end
     end)
 

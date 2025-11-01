@@ -173,7 +173,7 @@ function m:StartBuyTravelingItems()
         end
 
         for i=1, stock do
-            Core.GameEvents.BuyTravelingMerchantShopStock:FireServer(itemName, 5)
+            Core.ReplicatedStorage.GameEvents.BuyTravelingMerchantShopStock:FireServer(itemName, 5)
             task.wait(0.15)
         end
     end
@@ -190,7 +190,7 @@ function m:StartBuyTravelingItems()
 
     for itemName, stock in pairs(petItems) do
         for i=1, stock do
-            Core.GameEvents.BuyTravelingMerchantShopStock:FireServer(itemName, 5)
+            Core.ReplicatedStorage.GameEvents.BuyTravelingMerchantShopStock:FireServer(itemName, 5)
             task.wait(0.15)
         end
     end

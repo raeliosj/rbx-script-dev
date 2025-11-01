@@ -44,3 +44,5 @@ luac.out
 /Debug-*/
 debug.lua
 /output
+Debug/
+debug/

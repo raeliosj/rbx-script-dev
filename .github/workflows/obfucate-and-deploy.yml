@@ -1,10 +1,10 @@
-name: Obfuscate and Deploy Scripts
+# name: Obfuscate and Deploy Scripts
 
-on:
-  push:
-    branches:
-      - main
-  workflow_dispatch:
+# on:
+#   push:
+#     branches:
+#       - main
+#   workflow_dispatch:
 
 jobs:
   obfuscate-deploy:

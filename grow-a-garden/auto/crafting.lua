@@ -9,11 +9,6 @@ local Recipes
 local CraftingUtil
 local Plant
 
-m.StationRepository = {
-    GearEventWorkbench = workspace.CraftingTables.EventCraftingWorkBench,
-    SeedEventCraftingWorkBench = workspace.CraftingTables.SeedEventCraftingWorkBench,
-}
-
 function m:Init(window, core, plant)
     Window = window
     Core = core
@@ -30,8 +25,9 @@ function m:Init(window, core, plant)
             return Window:GetConfigValue("AutoCraftingGear")
         end, 
         function()
+            print("Starting Auto Crafting Gear")
             self:CraftingController( 
-                self.StationRepository.GearEventWorkbench,
+                workspace.CraftingTables.EventCraftingWorkBench,
                 Window:GetConfigValue("CraftingGearItem")
             )
         end
@@ -42,8 +38,9 @@ function m:Init(window, core, plant)
             return Window:GetConfigValue("AutoCraftingSeeds")
         end, 
         function()
+            print("Starting Auto Crafting Seeds")
             self:CraftingController( 
-                self.StationRepository.SeedEventCraftingWorkBench,
+                workspace.CraftingTables.SeedEventCraftingWorkBench,
                 Window:GetConfigValue("CraftingSeedItem")
             )
         end
@@ -156,7 +153,7 @@ function m:SetRecipe(craftingStation, craftingItem)
         return
     end
 
-    Core.GameEvents.CraftingGlobalObjectService:FireServer(
+    Core.ReplicatedStorage.GameEvents.CraftingGlobalObjectService:FireServer(
         "SetRecipe",
         craftingStation,
         self:GetCraftingObjectType(craftingStation),
@@ -231,10 +228,10 @@ function m:StartCrafting(craftingStation)
         return
     end
 
-    local OpenRecipeEvent = Core.GameEvents.OpenRecipeBindableEvent
+    local OpenRecipeEvent = Core.ReplicatedStorage.GameEvents.OpenRecipeBindableEvent
 
     local success, error = pcall(function()
-        Core.GameEvents.CraftingGlobalObjectService:FireServer(
+        Core.ReplicatedStorage.GameEvents.CraftingGlobalObjectService:FireServer(
             "Craft",
             craftingStation,
             self:GetCraftingObjectType(craftingStation)
@@ -249,32 +246,40 @@ end
 
 function m:CraftingController(craftingStation, craftingItem)
     if not craftingStation or not craftingItem then
+        Window:ShowWarning("CraftingController: Invalid crafting station or item.")
         return
     end
 
+    Window:ShowInfo("Starting crafting process for item: " .. craftingItem)
+
     if self:GetCraftingStationStatus(craftingStation) == "Idle" then
+        Window:ShowInfo("Setting recipe for item: " .. craftingItem)
         self:SetRecipe(craftingStation, craftingItem)
         task.wait(0.5) -- Wait for 0.5 seconds to allow the station to update its status
     end
 
     while self:GetCraftingStationStatus(craftingStation) == "Waiting for Item" do
+        Window:ShowInfo("Waiting for items to be submitted for crafting.")
         self:SubmitCraftingRequest(craftingStation)
         
         wait(5) -- Wait for 5 seconds before checking again
     end
 
     if  self:GetCraftingStationStatus(craftingStation) == "Ready to Start" then
+        Window:ShowInfo("Starting crafting for item: " .. craftingItem)
         self:StartCrafting(craftingStation)
         task.wait(0.5) -- Wait for 0.5 seconds to allow the crafting process to start
     end
     
     while self:GetCraftingStationStatus(craftingStation) == "On Progress" do
-        wait(5) -- Wait for 5 seconds before checking again
+        Window:ShowInfo("Crafting in progress for item: " .. craftingItem)
+        wait(20) -- Wait for 20 seconds before checking again
     end
 
     if self:GetCraftingStationStatus(craftingStation) == "Ready to Claim" then
+        Window:ShowInfo("Claiming crafted item: " .. craftingItem)
         local success, error = pcall(function()
-            Core.GameEvents.CraftingGlobalObjectService:FireServer(
+            Core.ReplicatedStorage.GameEvents.CraftingGlobalObjectService:FireServer(
                 "Claim",
                 craftingStation,
                 self:GetCraftingObjectType(craftingStation),
@@ -283,7 +288,7 @@ function m:CraftingController(craftingStation, craftingItem)
         end)
 
         if not success then
-            warn("Error claiming crafted item:", error)
+            Window:ShowWarning("Error claiming crafted item: " .. error)
             return
         end
 
@@ -317,11 +322,13 @@ function m:GetUnsubmittedItems(craftingStation)
     local recipe = machineData and machineData.RecipeId and Recipes[machineData.RecipeId]
     local result = {}
     
-    if recipe then
-        for id, input in pairs(recipe.Inputs) do
-            if not submitted[tostring(id)] then
-                table.insert(result, input)
-            end
+    if not recipe then
+        return result
+    end
+    
+    for id, input in pairs(recipe.Inputs) do
+        if not submitted[tostring(id)] then
+            table.insert(result, input)
         end
     end
     

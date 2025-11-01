@@ -65,7 +65,7 @@ function m:StartAutoBuyGear()
         end
         
         for i=1, stock do
-            Core.GameEvents.BuyGearStock:FireServer(gearName)
+            Core.ReplicatedStorage.GameEvents.BuyGearStock:FireServer(gearName)
              task.wait(0.15)
         end
     end

@@ -31,7 +31,7 @@ function m:GetAllPets()
 end
 
 function m:FavoriteItem(item)
-    Core.GameEvents.Favorite_Item:FireServer(item)
+    Core.ReplicatedStorage.GameEvents.Favorite_Item:FireServer(item)
     task.wait(0.15)
 end
 

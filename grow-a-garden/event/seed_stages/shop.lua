@@ -28,7 +28,7 @@ function m:BuyEventItem(itemName)
         return
     end
 
-    Core.GameEvents.BuyEventShopStock:FireServer(itemName, 1)
+    Core.ReplicatedStorage.GameEvents.BuyEventShopStock:FireServer(itemName, 1)
 end
 
 function m:BuyAllEventItems()

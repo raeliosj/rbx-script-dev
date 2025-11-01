@@ -28,7 +28,7 @@ function m:StartAutoSubmitEventPlants()
     if not Window:GetConfigValue("AutoSubmitSeedStagePlants") then
         return
     end
-    Core.GameEvents.TieredPlants.Submit:FireServer("All")
+    Core.ReplicatedStorage.GameEvents.TieredPlants.Submit:FireServer("All")
 end
 
 -- function m:SubmitEventPlant(tool)
@@ -53,7 +53,7 @@ end
 --     local submitTask = function()
 --         print("Submitting event plant:", tool.Name)
 --         local success = pcall(function()
---             Core.GameEvents.TieredPlants.Submit:FireServer("Held")
+--             Core.ReplicatedStorage.GameEvents.TieredPlants.Submit:FireServer("Held")
 --         end)
         
 --         if success then
