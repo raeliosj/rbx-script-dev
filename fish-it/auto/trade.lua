@@ -201,8 +201,8 @@ function m:StartAutoGive()
         )
 
         if success then
-            currentIndex = currentIndex + 1
             print(string.format("Successfully gave item: %s", itemsToGive[currentIndex].UUID))
+            currentIndex = currentIndex + 1
         else
             warn(string.format("Failed to give item: %s", itemsToGive[currentIndex].UUID))
         end
@@ -216,7 +216,7 @@ function m:StartAutoGive()
 end
 
 function m:AcceptTrade(itemType, itemData, sender)
-    if Window:GetConfigValue("AutoGiveItems") then
+    if not Window:GetConfigValue("AutoGiveItems") then
         print("Auto Give Items is disabled. Ignoring trade response.")
         return false
     end

@@ -285,7 +285,7 @@ function m:CustomSection(tab)
 
             CustomPositionConfig:SetValue(positionName, position)
             
-            position.Clear()()
+            position.Clear()
             positionName.Clear()
         end
     })

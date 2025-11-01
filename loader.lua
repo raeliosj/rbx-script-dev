@@ -31,7 +31,7 @@ local function getLatestRelease()
             "SendNotification",
             {
                 Title = "EzHub",
-                Text = "Failed to fetch latest release:" ... response,
+                Text = "Failed to fetch latest release:" .. tostring(response),
                 Duration = 5
             }
         )
@@ -89,8 +89,8 @@ local function getFileNameForGame()
     local games = {
         [126884695634066] = "gag.lua", -- Grow a Garden
         [91867617264223] = "gag.lua", -- Grow a Garden 1
-        [124977557560410] = "gag.lua" -- Grow a Garden 3
-        [121864768012064] = "fish-it.lua" -- Fish It
+        [124977557560410] = "gag.lua", -- Grow a Garden 3
+        [121864768012064] = "fish-it.lua", -- Fish It
     }
     local fileName = games[game.PlaceId]
 
