@@ -90,12 +90,8 @@ function m:CreateConnections()
         end
 
         local delayClick = math.max(Window:GetConfigValue("AutoInstantCatchDelayPerClickPower") or 0.25, 0.1)
-        print("Text effect received, starting click sequence with delay:", delayClick)
-
         local clickProgress = 0
         local currentFishingPower = CurrentMinigameData.FishingClickPower or 0.1
-        print("Current fishing power:", currentFishingPower)
-        local startTime = tick()
         
         while clickProgress < 1 do
             self:SetIsFishingActive(true)
@@ -103,9 +99,32 @@ function m:CreateConnections()
             
             task.wait(delayClick)
         end
-        
-        local endTime = tick()
-        print("Completed click sequence in", endTime - startTime, "seconds.")
+
+        if Window:GetConfigValue("AutoTeleportToFishingSpot") then
+            local configLockPosition = Window:GetConfigValue("LockPlayerPosition")
+            local lockAtPosition = CFrame.new(0.0, 0.0, 0.0)
+
+            local values = string.split(configLockPosition, ",")
+            for i, v in ipairs(values) do
+                values[i] = tonumber(v)
+            end
+
+            if #values == 3 then
+                lockAtPosition = CFrame.new(Vector3.new(values[1], values[2], values[3]))
+            elseif #values == 12 then
+                lockAtPosition = CFrame.new(
+                    values[1], values[2], values[3],
+                    values[4], values[5], values[6],
+                    values[7], values[8], values[9],
+                    values[10], values[11], values[12]
+                )
+            else
+                warn("Lock position string is invalid.")
+                return
+            end
+
+            Player:TeleportToPosition(lockAtPosition)
+        end
 
         pcall(function()
             FishingCompletedEvent:FireServer()
