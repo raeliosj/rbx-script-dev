@@ -181,12 +181,14 @@ function m:StartAutoPlanting()
     
     for _, seedName in pairs(seedsToPlant) do
         if #PlantsPhysical:GetChildren() >= 800 then
+            Window:ShowWarning("Auto Planting", "Farm is full, stopping auto planting.")
             break
         end
         local existingPlants = self:FindPlants(seedName) or {}
         local numExisting = #existingPlants
         local numToPlant = math.max(0, seedToPlantCount - numExisting)
 
+        Window:ShowInfo("Auto Planting", "Planting " .. tostring(numToPlant) .. " of " .. seedName)
         if numToPlant > 0 then
             self:PlantSeed(seedName, numToPlant, plantingPosition)
             plantsNeeded = true
