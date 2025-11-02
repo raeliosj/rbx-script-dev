@@ -112,8 +112,7 @@ function m:StartAutoHarvest()
 
     for _, plantModel in pairs(plantToHarvest) do
         if Plant:IsMaxInventory() then
-            Window:ShowWarning("Safari Quest", "Inventory full, stopping auto harvest.")
-            break
+            Core.ReplicatedStorage.GameEvents.SafariEvent.Safari_SubmitAllRE:FireServer(Core.LocalPlayer)
         end
         
         Plant:HarvestFruit(plantModel)
