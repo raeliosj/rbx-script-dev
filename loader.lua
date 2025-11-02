@@ -81,12 +81,11 @@ local function main()
         
         return
     end
-
     local url = string.format("https://github.com/%s/%s/releases/latest/download/%s", OWNER, REPO, fileName)
 
     notify("Loaded " .. fileName .. " from release: " .. release.tag_name or "unknown")
 
-    loadstring(url)()
+    loadstring(game:HttpGet(url))()
 end
 
 main()
