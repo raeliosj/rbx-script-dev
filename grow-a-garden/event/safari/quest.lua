@@ -111,6 +111,10 @@ function m:StartAutoHarvest()
     Window:ShowInfo("Safari Quest", "Auto harvesting " .. tostring(#plantToHarvest) .. " fruits for quest: " .. questPlantType)
 
     for _, plantModel in pairs(plantToHarvest) do
+        if Plant:IsMaxInventory() and Window:GetConfigValue("SafariSellFruitsIfInventoryFull") then
+            Plant:SellAllFruits()
+        end
+        
         if Plant:IsMaxInventory() then
             Core.ReplicatedStorage.GameEvents.SafariEvent.Safari_SubmitAllRE:FireServer(Core.LocalPlayer)
         end
