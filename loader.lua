@@ -10,6 +10,17 @@ local requestFunction = request or
                         (fluxus and fluxus.request) or
                         http_request
 
+local function notify(text)
+    game.StarterGui:SetCore(
+        "SendNotification",
+        {
+            Title = "EzHub",
+            Text = text,
+            Duration = 5
+        }
+    )
+end
+
 local function getLatestRelease()
 	local url = string.format("https://api.github.com/repos/%s/%s/releases/latest", OWNER, REPO)
 
@@ -27,62 +38,17 @@ local function getLatestRelease()
     end)
 
     if not success then
-        game.StarterGui:SetCore(
-            "SendNotification",
-            {
-                Title = "EzHub",
-                Text = "Failed to fetch latest release:" .. tostring(response),
-                Duration = 5
-            }
-        )
+        notify("Failed to fetch latest release: " .. tostring(response))
         return nil
     end
 
 	local body = response.Body or response.body or response.data
     if not body then
-        game.StarterGui:SetCore(
-            "SendNotification",
-            {
-                Title = "EzHub",
-                Text = "Failed to fetch latest release: Empty response body",
-                Duration = 5
-            }
-        )
+        notify("Failed to fetch latest release: Empty response body")
         return nil
     end
 
     return HttpService:JSONDecode(body)
-end
-
-local function downloadAsset(assetUrl: string)
-	local headers = {
-		["User-Agent"] = "RobloxScript",
-        ["X-GitHub-Api-Version"] = "2022-11-28",
-        ["Host"] = "api.github.com",
-		["Accept"] = "application/octet-stream",
-	}
-
-	local success, result = pcall(function()
-		return requestFunction({
-            Url = assetUrl,
-            Method = 'GET',
-            Headers = headers
-        })
-	end)
-
-	if not success then
-        game.StarterGui:SetCore(
-            "SendNotification",
-            {
-                Title = "EzHub",
-                Text = "Failed to download asset: " .. tostring(result),
-                Duration = 5
-            }
-        )
-		return nil
-	end
-
-	return result.Body or result.body or result.data
 end
 
 local function getFileNameForGame()
@@ -100,14 +66,7 @@ end
 local function main()
     local fileName = getFileNameForGame()
     if not fileName then
-        game.StarterGui:SetCore(
-            "SendNotification",
-            {
-                Title = "EzHub",
-                Text = "This game is not supported.",
-                Duration = 5
-            }
-        )
+        notify("This game is not supported by EzHub.")
         return
     end
 
@@ -117,48 +76,17 @@ local function main()
         for key, value in pairs(release) do
             print(key, value)
         end
-        game.StarterGui:SetCore(
-            "SendNotification",
-            {
-                Title = "EzHub",
-                Text = "Failed to get latest release information.",
-                Duration = 5
-            }
-        )
+
+        notify("Failed to get latest release information.")
+        
         return
     end
 
-    for _, asset in ipairs(release.assets) do
-        if asset.name ~= fileName then
-            continue
-        end
+    local url = string.format("https://github.com/%s/%s/releases/latest/download/%s", OWNER, REPO, fileName)
 
-        local code = downloadAsset(asset.url)
-        
-        if code then
-            game.StarterGui:SetCore(
-                "SendNotification",
-                {
-                    Title = "EzHub",
-                    Text = "Loaded " .. fileName .. " from release: " .. release.tag_name,
-                    Duration = 5
-                }
-            )
-            print("Running script from release:", release.tag_name)
-            loadstring(code)()
-        else
-            game.StarterGui:SetCore(
-                "SendNotification",
-                {
-                    Title = "EzHub",
-                    Text = "Failed to load asset " .. fileName,
-                    Duration = 5
-                }
-            )
-        end
-        
-        break
-    end
+    notify("Loaded " .. fileName .. " from release: " .. release.tag_name or "unknown")
+
+    loadstring(url)()
 end
 
 main()
