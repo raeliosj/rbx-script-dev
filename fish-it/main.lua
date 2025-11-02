@@ -91,7 +91,7 @@ SpotModule:Init(CoreModule)
 NPCModule:Init(window, CoreModule)
 
 -- Farm
-FishingModule:Init(window, CoreModule)
+FishingModule:Init(window, CoreModule, PlayerModule, SpotModule)
 WebhookFarmModule:Init(window, CoreModule, Discord)
 InventoryModule:Init(window, CoreModule, WebhookFarmModule)
 

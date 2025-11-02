@@ -2,6 +2,8 @@ local m = {}
 
 local Window
 local Core
+local Player
+local Spot
 
 local Net
 local ChargeFishingRodRemote
@@ -20,9 +22,11 @@ local LastFishingActivityTime = tick()
 
 local CurrentMinigameData = nil
 
-function m:Init(_window, _core)
+function m:Init(_window, _core, _player, _spot)
     Window = _window
     Core = _core
+    Player = _player
+    Spot = _spot
 
     Constants = require(Core.ReplicatedStorage.Shared.Constants)
     RaycastUtility = require(Core.ReplicatedStorage.Shared.RaycastUtility)
@@ -163,10 +167,25 @@ function m:SetServerAutoFishing(enabled)
 end
 
 function m:CreateFishingLoop()   
+    if Window:GetConfigValue("AutoTeleportToFishingSpot") then
+        currentFishingPosition = Player:GetPosition()
+        local selectedSpots = Window:GetConfigValue("TeleportToFishingSpot")
+        if not selectedSpots then
+            return
+        end
+
+        local spotData = Spot:FindSpotByName(selectedSpots)
+        if not spotData then
+            return
+        end
+        Player:TeleportToPosition(spotData.Position)
+    end
+
     local totalRetry = 0
     local raycastResult = self:GetRayCastPosition()
     local fishingPosition = raycastResult and raycastResult.Position and raycastResult.Position.Y or 0
-    
+
+
     while Window:GetConfigValue("AutoFishing") and Core.IsWindowOpen do
         self:SetIsFishingActive(true)
         
@@ -182,7 +201,7 @@ function m:CreateFishingLoop()
         local chargeTime = workspace:GetServerTimeNow()
         local success = ChargeFishingRodRemote:InvokeServer(chargeTime)
         if not success then
-            Window:ShowWarning(string.format("Retrying... %s", tostring(totalRetry)), "Failed to charge fishing rod")
+            warn(string.format("Retrying... %s", tostring(totalRetry)), "Failed to charge fishing rod")
             totalRetry = totalRetry + 1
             continue
         end
@@ -203,7 +222,7 @@ function m:CreateFishingLoop()
         
         if not success then
             totalRetry = totalRetry + 1
-            Window:ShowWarning(string.format("Retrying... %s", tostring(totalRetry)), string.format("Failed to start fishing minigame, %s", tostring(minigameResult)))
+            warn(string.format("Retrying... %s", tostring(totalRetry)), string.format("Failed to start fishing minigame, %s", tostring(minigameResult)))
             continue
         end
         
@@ -212,6 +231,32 @@ function m:CreateFishingLoop()
         end
         
         break
+    end
+
+    if Window:GetConfigValue("AutoTeleportToFishingSpot") then
+        local configLockPosition = Window:GetConfigValue("LockPlayerPosition")
+        local lockAtPosition = CFrame.new(0.0, 0.0, 0.0)
+
+        local values = string.split(configLockPosition, ",")
+        for i, v in ipairs(values) do
+            values[i] = tonumber(v)
+        end
+
+        if #values == 3 then
+            lockAtPosition = CFrame.new(Vector3.new(values[1], values[2], values[3]))
+        elseif #values == 12 then
+            lockAtPosition = CFrame.new(
+                values[1], values[2], values[3],
+                values[4], values[5], values[6],
+                values[7], values[8], values[9],
+                values[10], values[11], values[12]
+            )
+        else
+            warn("Lock position string is invalid.")
+            return
+        end
+
+        Player:TeleportToPosition(lockAtPosition)
     end
 end
 

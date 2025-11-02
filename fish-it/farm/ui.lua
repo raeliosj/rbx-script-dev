@@ -78,6 +78,12 @@ function m:FishingSection(tab)
         end
     })
 
+    accordion:AddToggle({
+        Name = "Auto Teleport to Fishing Spot",
+        Default = false,
+        Flag = "AutoTeleportToFishingSpot",
+    })
+
     accordion:AddButton({
         Name = "Stop Auto Fishing Now 🛑",
         Variant = "warning",
