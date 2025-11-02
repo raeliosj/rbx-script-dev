@@ -44,9 +44,9 @@ local InventoryModule = require('inventory/inventory.lua')
 local InventoryUI = require('inventory/ui.lua')
 
 -- Event modules
-local GhoulQuest = require('event/ghoul/quest.lua')
-local GhoulShop = require('event/ghoul/shop.lua')
-local GhoulUI = require('event/ghoul/ui.lua')
+local SafariQuestModule = require('event/safari/quest.lua')
+local SafariShopModule = require('event/safari/shop.lua')
+local SafariUI = require('event/safari/ui.lua')
 
 -- Notification module
 local NotificationUI = require('notification/ui.lua')
@@ -77,6 +77,9 @@ window:SetCloseCallback(function()
 
     -- Stop all active loops
     CoreModule:StopAllLoops()
+
+    -- Safari Event
+    SafariQuestModule:StopAutoSubmitEventPlants()
 end)
 
 petTeamsConfig = EzUI:NewConfig({
@@ -131,9 +134,9 @@ InventoryModule:Init(CoreModule, PlayerModule, window)
 InventoryUI:Init(window, InventoryModule, PetModule)
 
 -- Event
-GhoulQuest:Init(window, CoreModule)
-GhoulShop:Init(window, CoreModule, PetModule)
-GhoulUI:Init(window, GhoulQuest, GhoulShop)
+SafariQuestModule:Init(window, CoreModule, PlantModule)
+SafariShopModule:Init(window, CoreModule)
+SafariUI:Init(window, CoreModule, SafariQuestModule, SafariShopModule)
 
 -- Server
 ServerUI:Init(window, CoreModule, PlayerModule, GardenModule)
