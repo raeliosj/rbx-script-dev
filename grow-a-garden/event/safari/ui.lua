@@ -48,7 +48,13 @@ function m:SafariQuestSection(tab)
                 Quest:StopAutoSubmitEventPlants()
             end
         end,
-    })    
+    })
+
+    accordion:AddToggle({
+        Name = "Sell All Fruits If Inventory Full",
+        Default = false,
+        Flag = "SafariSellFruitsIfInventoryFull",
+    })
 end
 
 function m:ShopSection(tab)
