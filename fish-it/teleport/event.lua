@@ -66,7 +66,7 @@ function m:FindEventPosition(menuRings, selectedEvent)
         table.insert(props, table.unpack(propsModel:GetChildren()))
     end
     for _, prop in pairs(props) do
-        if prop.Name ~= selectedEvent then
+        if not selectedEvent:match("^Admin") and prop.Name ~= selectedEvent then
             continue
         end
 

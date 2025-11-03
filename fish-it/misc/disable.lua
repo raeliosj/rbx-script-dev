@@ -9,6 +9,7 @@ function m:Init(_window, _core)
 
     self:DisableCatchFishAnimation()
     self:DisablePlayerName()
+    self:DisableNotifications()
 end
 
 function m:DisableCatchFishAnimation()

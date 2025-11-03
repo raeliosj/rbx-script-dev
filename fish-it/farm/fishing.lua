@@ -100,38 +100,16 @@ function m:CreateConnections()
             task.wait(delayClick)
         end
 
-        if Window:GetConfigValue("AutoTeleportToFishingSpot") then
-            local configLockPosition = Window:GetConfigValue("LockPlayerPosition")
-            local lockAtPosition = CFrame.new(0.0, 0.0, 0.0)
-
-            local values = string.split(configLockPosition, ",")
-            for i, v in ipairs(values) do
-                values[i] = tonumber(v)
-            end
-
-            if #values == 3 then
-                lockAtPosition = CFrame.new(Vector3.new(values[1], values[2], values[3]))
-            elseif #values == 12 then
-                lockAtPosition = CFrame.new(
-                    values[1], values[2], values[3],
-                    values[4], values[5], values[6],
-                    values[7], values[8], values[9],
-                    values[10], values[11], values[12]
-                )
-            else
-                warn("Lock position string is invalid.")
-                return
-            end
-
-            Player:TeleportToPosition(lockAtPosition)
-        end
-
         pcall(function()
             FishingCompletedEvent:FireServer()
         end)
-        -- Wait server to process fishing completion
-        task.wait(0.05)
         
+        if Window:GetConfigValue("AutoTeleportToFishingSpot") then
+            task.wait(0.2)
+        else
+            task.wait(0.05)
+        end
+
         if not IsFishingActive then
             return
         end
@@ -212,7 +190,7 @@ function m:CreateFishingLoop()
         CancelFishingInputsRemote:InvokeServer()
         
         if totalRetry >= 10 then
-            Window:ShowError("Max retries reached for fishing.", "Auto Fishing Stopped")
+            Window:ShowError("Fishing", "Max retries reached for fishing.")
             self:SetIsFishingActive(false)
             break
         end
@@ -254,24 +232,9 @@ function m:CreateFishingLoop()
 
     if Window:GetConfigValue("AutoTeleportToFishingSpot") then
         local configLockPosition = Window:GetConfigValue("LockPlayerPosition")
-        local lockAtPosition = CFrame.new(0.0, 0.0, 0.0)
-
-        local values = string.split(configLockPosition, ",")
-        for i, v in ipairs(values) do
-            values[i] = tonumber(v)
-        end
-
-        if #values == 3 then
-            lockAtPosition = CFrame.new(Vector3.new(values[1], values[2], values[3]))
-        elseif #values == 12 then
-            lockAtPosition = CFrame.new(
-                values[1], values[2], values[3],
-                values[4], values[5], values[6],
-                values[7], values[8], values[9],
-                values[10], values[11], values[12]
-            )
-        else
-            warn("Lock position string is invalid.")
+        local lockAtPosition = Core:StringToCFrame(configLockPosition)
+        if not lockAtPosition then
+            Window:ShowWarning("Fishing", "Invalid lock position for teleporting to fishing spot.")
             return
         end
 
@@ -281,12 +244,12 @@ end
 
 function m:StartAutoFastFishing()
     if not Window:GetConfigValue("AutoFishing") then
-        Window:ShowWarning("Auto Fishing has been disabled.")
+        Window:ShowWarning("Fishing", "Auto Fishing has been disabled.")
         return
     end
 
     if Window:GetConfigValue("AutoFishingMethod") ~= "Fast" then
-        Window:ShowWarning("Invalid fishing method selected.")
+        Window:ShowWarning("Fishing", "Invalid fishing method selected.")
         return
     end
 
@@ -307,12 +270,12 @@ end
 
 function m:StartAutoInstantFishing()
     if not Window:GetConfigValue("AutoFishing") then
-        Window:ShowWarning("Auto Fishing has been disabled.")
+        Window:ShowWarning("Fishing", "Auto Fishing has been disabled.")
         return
     end
 
     if Window:GetConfigValue("AutoFishingMethod") ~= "Instant" then
-        Window:ShowWarning("Invalid fishing method selected.")
+        Window:ShowWarning("Fishing", "Invalid fishing method selected.")
         return
     end
 
@@ -351,7 +314,7 @@ function m:StartAutoFishing()
     elseif Window:GetConfigValue("AutoFishingMethod") == "Instant" then
         self:StartAutoInstantFishing()
     else
-        Window:ShowWarning("Please select a valid fishing method!")
+        Window:ShowWarning("Fishing", "Please select a valid fishing method!")
     end
 end
 
