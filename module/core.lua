@@ -55,6 +55,31 @@ function m:HopServer()
     end
 end
 
+function m:StringToCFrame(str)
+    local cframePosition = CFrame.new(0.0, 0.0, 0.0)
+
+    local values = string.split(str, ",")
+    for i, v in ipairs(values) do
+        values[i] = tonumber(v)
+    end
+
+    if #values == 3 then
+        cframePosition = CFrame.new(Vector3.new(values[1], values[2], values[3]))
+    elseif #values == 12 then
+        cframePosition = CFrame.new(
+            values[1], values[2], values[3],
+            values[4], values[5], values[6],
+            values[7], values[8], values[9],
+            values[10], values[11], values[12]
+        )
+    else
+        warn("Position string is invalid.")
+        return nil
+    end
+    
+    return cframePosition
+end
+
 function m:FormatNumber(number)
     return tostring(number):reverse():gsub("%d%d%d", "%1."):reverse():gsub("^%.", "")
 end
