@@ -121,11 +121,38 @@ function m:EnchantSection(tab)
     accordion:AddSeparator()
 
     accordion:AddLabel("Enchant 2")
+
+    accordion:AddSelectBox({
+        Name = "Select Secret Fish",
+        Options = {"loading ..."},
+        Placeholder = "Select Secret Fish For Convert To Transcended Stone...",
+        MultiSelect = true,
+        Flag = "SecretFishForTranscendedStone",
+        OnInit = function(api, optionsData)
+            local secretFish = Enchant:GetListSecretFish() or {}
+            local formattedSecretFish = {}
+
+            for _, fishData in pairs(secretFish) do
+                table.insert(formattedSecretFish, {text = string.format("[%s] %s (%s) %s", fishData.Chance, fishData.Name, fishData.Mutations, fishData.IsFavorite and "❤️" or ""), value = fishData.UUID})
+            end
+            optionsData.updateOptions(formattedSecretFish)
+        end,
+        OnDropdownOpen = function(currentOptions, updateOptions)
+            local secretFish = Enchant:GetListSecretFish() or {}
+            local formattedSecretFish = {}
+
+            for _, fishData in pairs(secretFish) do
+                table.insert(formattedSecretFish, {text = string.format("[%s] %s (%s) %s", fishData.Chance, fishData.Name, fishData.Mutations, fishData.IsFavorite and "❤️" or ""), value = fishData.UUID})
+            end
+            updateOptions(formattedSecretFish)
+        end
+    })
+
     accordion:AddSelectBox({
         Name = "Select Target Enchant",
         Options = Enchant:GetListEnchant(),
         Placeholder = "Select Enchant...",
-        MultiSelect = false,
+        MultiSelect = true,
         Flag = "TargetEnchant2",
         Default = "",
     })

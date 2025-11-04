@@ -84,6 +84,26 @@ function m:FormatNumber(number)
     return tostring(number):reverse():gsub("%d%d%d", "%1."):reverse():gsub("^%.", "")
 end
 
+function m:FormatChance(chance)
+    if chance <= 0 then return "impossible" end
+    local odds = 1 / chance
+
+    local suffixes = {
+        {1e9, "B"},
+        {1e6, "M"},
+        {1e3, "K"},
+    }
+
+    for _, s in ipairs(suffixes) do
+        local div, label = s[1], s[2]
+        if odds >= div then
+            return string.format("1 in %.1f%s", odds / div, label)
+        end
+    end
+
+    return string.format("1 in %.1f", odds)
+end
+
 -- Table to track active loops
 local activeLoops = {}
 
