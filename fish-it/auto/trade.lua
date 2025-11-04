@@ -145,7 +145,7 @@ function m:StartAutoGive()
 
     local userId = Window:GetConfigValue("GiveToPlayer") or 0
     if userId == 0 then
-        warn("Auto Give Items: No UserId specified to give items to.")
+        Window:ShowWarning("Trade", "No UserId specified to give items to.")
         return
     end
 
@@ -154,7 +154,7 @@ function m:StartAutoGive()
     local dontGiveFavorite = Window:GetConfigValue("DontGiveFavoriteItems") or false
     
     if #itemName == 0 and not minRarity then
-        warn("Auto Give Items: No items or minimum rarity specified to give.")
+        Window:ShowWarning("Trade", "No items or minimum rarity specified to give.")
         return
     end
 
@@ -182,15 +182,19 @@ function m:StartAutoGive()
         end
     end
 
-    print(string.format("Total items to give: %d", #itemsToGive))
+    Window:ShowInfo("Trade", string.format("Preparing to give %d items to UserId: %d", #itemsToGive, userId))
+    
     local currentIndex = 1
+    local retryCount = 0
+    local maxRetries = 3
+
     while Window:GetConfigValue("AutoGiveItems") and #itemsToGive > 0 do
         if currentIndex > #itemsToGive then
             break
         end
         
         if itemsToGive[currentIndex].UUID == nil then
-            warn("Item UUID is nil, skipping item.")
+            Window:ShowWarning("Trade", "Item UUID is nil, skipping item.")
             currentIndex = currentIndex + 1
             continue
         end
@@ -201,14 +205,21 @@ function m:StartAutoGive()
         )
 
         if success then
-            print(string.format("Successfully gave item: %s", itemsToGive[currentIndex].UUID))
+            Window:ShowInfo("Trade", string.format("Successfully gave item: %s", itemsToGive[currentIndex].Name))
             currentIndex = currentIndex + 1
         else
-            warn(string.format("Failed to give item: %s", itemsToGive[currentIndex].UUID))
+            Window:ShowWarning("Trade", string.format("Failed to give item: %s", itemsToGive[currentIndex].Name))
+            
+            retryCount = retryCount + 1
+            if retryCount >= maxRetries then
+                Window:ShowWarning("Trade", "Max retries reached for current item, moving to next item.")
+                currentIndex = currentIndex + 1
+                retryCount = 0
+            end
         end
 
         if data then
-            print("Server Response:", data)
+            Window:ShowInfo("Trade", string.format("Server Response: %s", data))
         end
 
         task.wait(4)  -- Small delay to prevent spamming the server
@@ -216,15 +227,15 @@ function m:StartAutoGive()
 end
 
 function m:AcceptTrade(itemType, itemData, sender)
-    if not Window:GetConfigValue("AutoGiveItems") then
-        print("Auto Give Items is disabled. Ignoring trade response.")
+    if not Window:GetConfigValue("AutoAcceptTrades") then
+        print("Auto Accept Trades is disabled. Ignoring trade response.")
+        Window:ShowWarning("Trade", "Trade request received but Auto Accept Trades is disabled.")
         return false
     end
-    print(string.format("Trade Response Received: ItemType=%s, ItemData=%s, Sender=%s", tostring(itemType), tostring(itemData), tostring(sender)))
-
+    Window:ShowInfo("Trade", string.format("Automatically accepting trade from %s for item type %s.", tostring(sender), tostring(itemType)))
+    
     task.wait(1)
     PromptEvent:Fire(true)
-    print("Trade Response Processed.")
     task.wait(1)
 
     return true
