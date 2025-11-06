@@ -218,12 +218,13 @@ function m:AutoWateringPlants()
     end
 
     if not wateringCan then
-        warn("No watering can found in inventory")
+        Window:ShowWarning("Auto Watering", "No watering can found in inventory")
         return
     end
 
     local growingPlants = self:GetAllGrowingPlants()
     if #growingPlants < 1 then
+        Window:ShowInfo("Auto Watering", "No growing plants found to water.")
         task.wait(10) -- Wait before checking again
         return
     end
@@ -248,7 +249,12 @@ function m:AutoWateringPlants()
 
     local wateringTask = function(position, each)
         local watered = 0
-        
+        if wateringPosition == "Growing Plants" then
+            Window:ShowInfo("Auto Watering", "Watering ".. tostring(#growingPlants) .. " growing plants. (" .. growingPlants[1].Name .. ")")
+        else
+            Window:ShowInfo("Auto Watering", "Watering " .. tostring(each) .. " times at position: " .. tostring(wateringPosition))
+        end
+
         for i = 1, each do
             local success = pcall(function()
                 Core.ReplicatedStorage.GameEvents.Water_RE:FireServer(Vector3.new(position.X, 0, position.Z))
@@ -483,19 +489,19 @@ end
 function m:MovePlant()
     local plantToMove = Window:GetConfigValue("PlantToMove")
     if not plantToMove or type(plantToMove) ~= "string" then
-        warn("Invalid plant selected for moving")
+        Window:ShowWarning("Plant Mover", "No plant selected to move.")
         return
     end
     local moveDestination = Window:GetConfigValue("MoveDestination")
     if not moveDestination or type(moveDestination) ~= "string" then
-        warn("Invalid move destination selected")
+        Window:ShowWarning("Plant Mover", "Invalid move destination selected.")
         return
     end
 
     local plants = self:FindPlants(plantToMove) or {}
 
     if #plants == 0 then
-        warn("No plants found to move")
+        Window:ShowWarning("Plant Mover", "No plants found to move.")
         return
     end
 
@@ -510,9 +516,11 @@ function m:MovePlant()
         position = Garden:GetFarmBackLeftPosition()
     end
     if not position then
-        warn("Failed to get farm position for moving")
+        Window:ShowWarning("Plant Mover", "Failed to get farm position for moving")
         return
     end
+
+    local flatPosition = Vector3.new(position.X, 0, position.Z)
 
     local trowel
     for _, Tool in next, Player:GetAllTools() do
@@ -523,13 +531,22 @@ function m:MovePlant()
         end
     end
     if not trowel then
-        warn("No trowel found in inventory")
+        Window:ShowWarning("Plant Mover", "No trowel found in inventory")
         return
     end
+
 
     local moveTask = function(plants, position)
         for _, plant in pairs(plants) do
             if not plant or not plant:IsA("Model") then
+                continue
+            end
+
+            local flatPlantPosition = Vector3.new(plant:GetPivot().Position.X, 0, plant:GetPivot().Position.Z)
+            local magnitudePlant = (flatPlantPosition - flatPosition).Magnitude
+            print("Moving plant:", plant.Name, "Distance to target:", magnitudePlant)
+            if magnitudePlant > -5 and magnitudePlant < 5 then
+                Window:ShowWarning("Plant Mover", "Plant is too close to the destination: " .. plant.Name)
                 continue
             end
 
@@ -555,7 +572,7 @@ function m:MovePlant()
             end)
 
             if not successPlace then
-                warn("Failed to place plant:", plant.Name)
+                Window:ShowWarning("Plant Mover", "Failed to place plant: " .. plant.Name)
             end
         end
     end
@@ -568,4 +585,156 @@ function m:MovePlant()
         end
     )
 end
+
+function m:GetListGardenPlants()
+    local plantList = {}
+    if not PlantsPhysical then
+        warn("PlantsPhysical not found")
+        return plantList
+    end
+
+    for _, plant in pairs(PlantsPhysical:GetChildren()) do
+        if not plantList[plant.Name] then
+            plantList[plant.Name] = 1
+        else
+            plantList[plant.Name] = plantList[plant.Name] + 1
+        end
+    end
+
+    table.sort(plantList)
+
+    return plantList
+end
+
+function m:ShovelSelectedPlants()
+    local plantToShovel = Window:GetConfigValue("PlantToShovel") or ""
+    if not plantToShovel then
+        Window:ShowWarning("Plant Shoveler", "No plants selected to shovel.")
+        return
+    end
+
+    local shovel
+    for _, Tool in next, Player:GetAllTools() do
+        local uuid = Tool:GetAttribute("UUID")
+        if uuid == "SHOVEL" then
+            shovel = Tool
+            break
+        end
+    end
+    if not shovel then
+        Window:ShowWarning("Plant Shoveler", "No shovel found in inventory")
+        return
+    end
+
+
+    local shovelTask = function(plantToShovel)
+        local maxPlantsToShovel = Window:GetConfigValue("PlantsToShovelCount") or 1
+        local totalShoveled = 0
+
+        local plants = self:FindPlants(plantToShovel) or {}
+        if plants == 0 then
+            Window:ShowWarning("Plant Shoveler", "No plants found to shovel.")
+            return
+        end
+
+        Window:ShowInfo("Plant Shoveler", "Shoveling up to " .. tostring(maxPlantsToShovel) .. "/" .. tostring(#plants) .. " of " .. plantToShovel)
+
+        for _, plant in pairs(plants) do
+            if totalShoveled >= maxPlantsToShovel then
+                Window:ShowInfo("Plant Shoveler", "Finished shoveling " .. tostring(totalShoveled) .. " plants of " .. plantToShovel)
+                return
+            end
+            if not plant or not plant:IsA("Model") then
+                continue
+            end
+
+            local success, result = pcall(function()
+                local primaryPart = plant.PrimaryPart
+                Core.ReplicatedStorage.GameEvents.Remove_Item:FireServer(plant[primaryPart.Name])
+            end)
+
+            if not success then
+                Window:ShowWarning("Plant Shoveler", "Failed to shovel plant: " .. plant.Name .. " Error: " .. tostring(result))
+                continue
+            end
+            task.wait(0.5) -- Small delay between shovels
+            totalShoveled = totalShoveled + 1
+        end
+    end
+
+    Player:AddToQueue(
+        shovel,     -- tool
+        20,          -- priority (medium-high)
+        function()
+            shovelTask(plantToShovel)
+        end
+    )
+end
+
+function m:ReclaimSelectedPlants()
+    local plantToReclaim = Window:GetConfigValue("PlantToReclaim") or ""
+    if not plantToReclaim then
+        Window:ShowWarning("Plant Reclaimer", "No plants selected to reclaim.")
+        return
+    end
+
+    local reclaimTool
+    for _, tool in next, Player:GetAllTools() do
+        if tool.Name:match("Reclaimer") then
+            reclaimTool = tool
+            break
+        end
+    end
+    if not reclaimTool then
+        Window:ShowWarning("Plant Reclaimer", "No reclaimer found in inventory")
+        return
+    end
+
+    local reclaimTask = function(plantToReclaim)
+        local plants = self:FindPlants(plantToReclaim) or {}
+
+        if plants == 0 then
+            Window:ShowWarning("Plant Reclaimer", "No plants found to reclaim.")
+            return
+        end
+        
+        Window:ShowInfo("Plant Reclaimer", "Reclaiming " .. tostring(#plants) .. " of " .. plantToReclaim)
+
+        local maxPlantsToReclaim = Window:GetConfigValue("PlantsToReclaimCount") or 1
+        local totalReclaimed = 0
+        for _, plant in pairs(plants) do
+            if totalReclaimed >= maxPlantsToReclaim then
+                Window:ShowInfo("Plant Reclaimer", "Finished reclaiming " .. tostring(totalReclaimed) .. " plants of " .. plantToReclaim)
+                return
+            end
+
+            if not plant or not plant:IsA("Model") then
+                continue
+            end
+
+            local success, result = pcall(function()
+                Core.ReplicatedStorage.GameEvents.ReclaimerService_RE:FireServer(
+                    "TryReclaim",
+                    plant
+                )
+            end)
+
+            if not success then
+                Window:ShowWarning("Plant Reclaimer", "Failed to reclaim plant: " .. plant.Name .. " Error: " .. tostring(result))
+                continue
+            end
+            task.wait(0.5) -- Small delay between reclaims
+            totalReclaimed = totalReclaimed + 1
+        end
+    end
+
+    Player:AddToQueue(
+        reclaimTool,
+        20,         -- priority (low)
+        function()
+            reclaimTask(plantToReclaim)
+        end
+    )
+end
+
 return m
