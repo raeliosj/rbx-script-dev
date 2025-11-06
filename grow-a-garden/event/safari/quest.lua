@@ -118,6 +118,11 @@ function m:StartAutoHarvest()
         if Plant:IsMaxInventory() then
             Core.ReplicatedStorage.GameEvents.SafariEvent.Safari_SubmitAllRE:FireServer(Core.LocalPlayer)
         end
+
+        if questPlantType ~= self:GetQuestPlantType() then
+            Window:ShowWarning("Safari Quest", "Quest plant type changed during harvesting. Stopping.")
+            break
+        end
         
         Plant:HarvestFruit(plantModel)
         task.wait(0.15)

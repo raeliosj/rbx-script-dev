@@ -23,6 +23,8 @@ function m:CreateFarmTab()
     self:AddWateringSection(tab)
     self:AddHarvestingSection(tab)
     self:AddMovingSection(tab)
+    self:AddShovelSection(tab)
+    self:AddReclaimPlantSection(tab)
 end
 
 function m:AddPlantingSection(tab)
@@ -225,6 +227,108 @@ function m:AddMovingSection(tab)
 
     accordion:AddButton({Text = "Move Plant", Callback = function()
         Plant:MovePlant()
+    end})
+end
+
+function m:AddShovelSection(tab)
+    local accordion = tab:AddAccordion({
+        Title = "Shovel Plants",
+        Icon = "🪓",
+        Expanded = false,
+    })
+
+    accordion:AddSelectBox({
+        Name = "Select plant to shovel",
+        Flag = "PlantToShovel",
+        Placeholder = "Select plant...",
+        OnInit = function(api, optionsData)
+            local plants = Plant:GetListGardenPlants()
+            local formattedPlants = {}
+            for plantName, plantCount in pairs(plants) do
+                table.insert(formattedPlants, {
+                    text = plantName .. " (" .. tostring(plantCount) .. ")",
+                    value = plantName,
+                })
+            end
+            optionsData.updateOptions(formattedPlants)
+        end,
+        OnDropdownOpen = function(currentOptions, updateOptions)
+            local plants = Plant:GetListGardenPlants()
+            local formattedPlants = {}
+            for plantName, plantCount in pairs(plants) do
+                table.insert(formattedPlants, {
+                    text = plantName .. " (" .. tostring(plantCount) .. ")",
+                    value = plantName,
+                })
+            end
+
+            updateOptions(formattedPlants)
+        end
+    })
+
+    accordion:AddNumberBox({
+        Name = "Set the number of plants to shovel",
+        Placeholder = "Enter number of plants...",
+        Flag = "PlantsToShovelCount",
+        Min = 0,
+        Max = 800,
+        Default = 1,
+        Increment = 1,
+    })
+
+    accordion:AddButton({Text = "Shovel Selected Plant", Callback = function()
+        Plant:ShovelSelectedPlants()
+    end})
+end
+
+function m:AddReclaimPlantSection(tab)
+    local accordion = tab:AddAccordion({
+        Title = "Reclaim Plant",
+        Icon = "♻️",
+        Expanded = false,
+    })
+
+    accordion:AddSelectBox({
+        Name = "Select plant to reclaim",
+        Flag = "PlantToReclaim",
+        Placeholder = "Select plant...",
+        OnInit = function(api, optionsData)
+            local plants = Plant:GetListGardenPlants()
+            local formattedPlants = {}
+            for plantName, plantCount in pairs(plants) do
+                table.insert(formattedPlants, {
+                    text = plantName .. " (" .. tostring(plantCount) .. ")",
+                    value = plantName,
+                })
+            end
+            optionsData.updateOptions(formattedPlants)
+        end,
+        OnDropdownOpen = function(currentOptions, updateOptions)
+            local plants = Plant:GetListGardenPlants()
+            local formattedPlants = {}
+            for plantName, plantCount in pairs(plants) do
+                table.insert(formattedPlants, {
+                    text = plantName .. " (" .. tostring(plantCount) .. ")",
+                    value = plantName,
+                })
+            end
+
+            updateOptions(formattedPlants)
+        end
+    })
+
+    accordion:AddNumberBox({
+        Name = "Set the number of plants to reclaim",
+        Placeholder = "Enter number of plants...",
+        Flag = "PlantsToReclaimCount",
+        Min = 0,
+        Max = 800,
+        Default = 1,
+        Increment = 1,
+    })
+
+    accordion:AddButton({Text = "Reclaim Selected Plant", Callback = function()
+        Plant:ReclaimSelectedPlants()
     end})
 end
 
