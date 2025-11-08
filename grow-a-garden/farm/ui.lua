@@ -1,11 +1,13 @@
 local m = {}
 local Window
+local Core
 local Player
 local Garden
 local Plant
 
-function m:init(_window, _player, _garden, _plant)
+function m:init(_window, _core, _player, _garden, _plant)
     Window = _window
+    Core = _core
     Player = _player
     Garden = _garden
     Plant = _plant
@@ -21,6 +23,7 @@ function m:CreateFarmTab()
 
     self:AddPlantingSection(tab)
     self:AddWateringSection(tab)
+    self:AddSprinklerSection(tab)
     self:AddHarvestingSection(tab)
     self:AddMovingSection(tab)
     self:AddShovelSection(tab)
@@ -40,12 +43,12 @@ function m:AddPlantingSection(tab)
         Placeholder = "Select seeds...",
         MultiSelect = true,
         Flag = "SeedsToPlant",
-       OnInit = function(api, optionsData)
-            local seeds = Plant:GetPlantRegistry()
+        OnInit = function(api, optionsData)
+            local seeds = Plant:GetListSeedsAtInventory()
             local formattedSeeds = {}
             for _, seedData in pairs(seeds) do
                 table.insert(formattedSeeds, {
-                    text = seedData.plant,
+                    text = string.format("[%s] %s (%s)", seedData.rarity, seedData.plant, Core:FormatNumber(seedData.quantity)),
                     value = seedData.plant
                 })
             end
@@ -148,6 +151,59 @@ function m:AddWateringSection(tab)
     })
 end
 
+function m:AddSprinklerSection(tab)
+    local accordion = tab:AddAccordion({
+        Title = "Sprinkler",
+        Icon = "💦",
+        Expanded = false,
+    })
+
+    accordion:AddSelectBox({
+        Name = "Select sprinklers to auto place",
+        Options = {"Loading..."},
+        Placeholder = "Select sprinklers...",
+        MultiSelect = true,
+        Flag = "SprinklersToPlace",
+        OnInit = function(api, optionsData)
+            local sprinklers = Plant:GetSprinklersRegistry()
+            local formattedSprinklers = {}
+            for _, sprinklerData in pairs(sprinklers) do
+                table.insert(formattedSprinklers, {
+                    text = string.format("%s (%s)", sprinklerData.name, Core:FormatNumber(sprinklerData.quantity)),
+                    value = sprinklerData.name
+                })
+            end
+            optionsData.updateOptions(formattedSprinklers)
+        end,
+        OnDropdownOpen = function(currentOptions, updateOptions)
+            local sprinklers = Plant:GetSprinklersRegistry()
+            local formattedSprinklers = {}
+            for _, sprinklerData in pairs(sprinklers) do
+                table.insert(formattedSprinklers, {
+                    text = string.format("%s (%s)", sprinklerData.name, Core:FormatNumber(sprinklerData.quantity)),
+                    value = sprinklerData.name
+                })
+            end
+            updateOptions(formattedSprinklers)
+        end
+    })
+
+    accordion:AddSelectBox({
+        Name = "Position placing sprinklers",
+        Flag = "SprinklerPlacingPosition",
+        Options = {"Random", "Front Right", "Front Left", "Back Right", "Back Left"},
+        Default = "Random",
+        MultiSelect = false,
+        Placeholder = "Select position...",
+    })
+
+    accordion:AddToggle({
+        Name = "Enable Auto Place Sprinklers",
+        Flag = "AutoPlaceSprinklers",
+        Default = false,
+    })
+end
+
 function m:AddHarvestingSection(tab)
     local accordion = tab:AddAccordion({
         Title = "Harvest",
@@ -160,7 +216,7 @@ function m:AddHarvestingSection(tab)
         Flag = "PlantsToHarvest",
         MultiSelect = true,
         Placeholder = "Select plants...",
-       OnInit = function(api, optionsData)
+        OnInit = function(api, optionsData)
             local plants = Plant:GetPlantRegistry()
             local formattedPlants = {}
             for _, plantData in pairs(plants) do
@@ -203,17 +259,29 @@ function m:AddMovingSection(tab)
         Flag = "PlantToMove",
         MultiSelect = false,
         Placeholder = "Select plant...",
-       OnInit = function(api, optionsData)
-            local plants = Plant:GetPlantRegistry()
+        OnInit = function(api, optionsData)
+            local plants = Plant:GetListGardenPlants()
             local formattedPlants = {}
-            for _, plantData in pairs(plants) do
+            for plantName, plantCount in pairs(plants) do
                 table.insert(formattedPlants, {
-                    text = plantData.plant,
-                    value = plantData.plant,
+                    text = plantName .. " (" .. tostring(plantCount) .. ")",
+                    value = plantName,
                 })
             end
             optionsData.updateOptions(formattedPlants)
         end,
+        OnDropdownOpen = function(currentOptions, updateOptions)
+            local plants = Plant:GetListGardenPlants()
+            local formattedPlants = {}
+            for plantName, plantCount in pairs(plants) do
+                table.insert(formattedPlants, {
+                    text = plantName .. " (" .. tostring(plantCount) .. ")",
+                    value = plantName,
+                })
+            end
+
+            updateOptions(formattedPlants)
+        end
     })
 
     accordion:AddSelectBox({

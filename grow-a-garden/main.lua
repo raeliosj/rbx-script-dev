@@ -99,8 +99,8 @@ PlayerModule:Init(CoreModule)
 
 -- Farm
 GardenModule:Init(window, CoreModule, PlayerModule)
-PlantModule:Init(window, CoreModule, PlayerModule, GardenModule)
-FarmUI:init(window, PlayerModule, GardenModule, PlantModule)
+PlantModule:Init(window, CoreModule, PlayerModule, GardenModule, Rarity)
+FarmUI:init(window, CoreModule, PlayerModule, GardenModule, PlantModule)
 
 -- -- Pet
 PetTeamModule:Init(CoreModule, PlayerModule, window, petTeamsConfig, GardenModule)

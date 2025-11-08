@@ -81,7 +81,29 @@ function m:StringToCFrame(str)
 end
 
 function m:FormatNumber(number)
-    return tostring(number):reverse():gsub("%d%d%d", "%1."):reverse():gsub("^%.", "")
+    local is_integer = (number == math.floor(number))
+    
+    local int_part, dec_part
+    
+    if is_integer then
+        int_part = tostring(math.floor(number))
+    else
+        -- Untuk desimal, format dengan 2 digit di belakang koma
+        local formatted = string.format("%.2f", number)
+        int_part, dec_part = formatted:match("^(-?%d+)%.(%d+)$")
+    end
+    
+    local k
+    while true do  
+        int_part, k = int_part:gsub("^(-?%d+)(%d%d%d)", "%1.%2")
+        if k == 0 then break end
+    end
+    
+    if dec_part then
+        return int_part .. "," .. dec_part
+    else
+        return int_part
+    end
 end
 
 function m:FormatChance(chance)
