@@ -77,7 +77,7 @@ function m:AscensionSection(tab)
     })
 
     accordion:AddLabel(function()
-        return "Current Quest: ".. AscensionItem.Amount .. " " .. AscensionItem.Name .. " (" .. (AscensionItem.Mutations ~= "" and AscensionItem.Mutations or "No Mutation") .. ")"
+        return "Current Quest: ".. (AscensionItem.Amount or 0) .. " " .. (AscensionItem.Name or "Unknown") .. " (" .. (AscensionItem.Mutations ~= "" and AscensionItem.Mutations or "No Mutation") .. ")"
     end)
     accordion:AddLabel(function()
         return "Next Rebirth Submit Time: " .. getTimeRemaining()
