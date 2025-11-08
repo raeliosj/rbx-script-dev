@@ -917,6 +917,11 @@ function m:AutoPlaceSprinklers()
     end
 
     for _, tool in pairs(sprinkleTools) do
+        local tasks = Player:GetTaskByTool(tool)
+        if tasks and #tasks > 0 then
+            continue
+        end
+
         Player:AddToQueue(
             tool,
             20,         -- priority (low)
