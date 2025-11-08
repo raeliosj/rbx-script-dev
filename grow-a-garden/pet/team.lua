@@ -19,7 +19,6 @@ function m:SaveTeamPets(_teamName, _listPets)
 end
 
 function m:GetAllPetTeams()
-    print("Fetching all pet teams from configuration...")
     local allKeys = PetConfig:GetAllKeys()
 
     return allKeys

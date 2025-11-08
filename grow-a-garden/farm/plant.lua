@@ -4,12 +4,15 @@ local Core
 local Player
 local Garden
 local PlantsPhysical
+local ObjectsPhysical
+local Rarity
 
-function m:Init(_window, _core, _player, _garden)
+function m:Init(_window, _core, _player, _garden, _rarity)
     Window = _window
     Core = _core
     Player = _player
     Garden = _garden
+    Rarity = _rarity
 
     local myGarden = Garden:GetMyFarm()
     if not myGarden then
@@ -19,6 +22,7 @@ function m:Init(_window, _core, _player, _garden)
 
     local important = myGarden:FindFirstChild("Important")
     PlantsPhysical = important:FindFirstChild("Plants_Physical")  
+    ObjectsPhysical = important:FindFirstChild("Objects_Physical")
 
     _core:MakeLoop(function()
         return Window:GetConfigValue("AutoPlantSeeds")
@@ -36,6 +40,12 @@ function m:Init(_window, _core, _player, _garden)
         return Window:GetConfigValue("AutoHarvestPlants")
     end, function()
         self:StartAutoHarvesting()
+    end)
+
+    _core:MakeLoop(function()
+        return Window:GetConfigValue("AutoPlaceSprinklers")
+    end, function()
+        self:AutoPlaceSprinklers()
     end)
 end
 
@@ -67,23 +77,74 @@ function m:GetPlantRegistry()
     -- Sort seeds alphabetically (ascending order) - Safe for all executors
     if #formattedSeeds > 0 then
         table.sort(formattedSeeds, function(a, b)
-            if not a or not b or not a.plant or not b.plant then
-                return false
+            local rarityA = Rarity.RarityOrder[a.rarity] or 99
+            local rarityB = Rarity.RarityOrder[b.rarity] or 99
+
+            if rarityA == rarityB then
+                return a.plant < b.plant
             end
-            return string.lower(tostring(a.plant)) < string.lower(tostring(b.plant))
+
+            return rarityA < rarityB
         end)
     end
                 
     return formattedSeeds
 end
 
+function m:FindPlantRegistryByName(plantName)
+    local plants = self:GetPlantRegistry()
+    for _, plantData in pairs(plants) do
+        if plantData.plant == plantName then
+            return plantData
+        end
+    end
+
+    return nil
+end
+
+function m:GetListSeedsAtInventory()
+    local seedList = {}
+    for _, tool in pairs(Player:GetAllTools()) do
+        local toolType = tool:GetAttribute("b")
+        if toolType == "n" then
+            local seedName = tool:GetAttribute("Seed") or ""
+            local seedQty = tool:GetAttribute("Quantity") or 0
+            local seedData = self:FindPlantRegistryByName(seedName)
+            
+            table.insert(seedList, {
+                seed = seedData and seedData.seed or "Unknown",
+                plant = seedData and seedData.plant or seedName,
+                quantity = seedQty,
+                rarity = seedData and seedData.rarity or "Unknown",
+            })
+        end
+    end
+
+    -- Sort seeds by rarity and then alphabetically
+    if #seedList > 0 then
+        table.sort(seedList, function(a, b)
+            local rarityA = Rarity.RarityOrder[a.rarity] or 99
+            local rarityB = Rarity.RarityOrder[b.rarity] or 99
+
+            if rarityA == rarityB then
+                return a.plant < b.plant
+            end
+
+            return rarityA < rarityB
+        end)
+    end
+
+    return seedList
+end
+
 function m:PlantSeed(_seedName, _numToPlant, _plantingPosition)
     if not _seedName or type(_seedName) ~= "string" then
-        warn("FarmUtils:PlantSeed - Invalid seed name")
+        Window:ShowWarning("Auto Planting", "Invalid seed name")
         return false
     end
 
     if #PlantsPhysical:GetChildren() >= 800 then
+        Window:ShowWarning("Auto Planting", "Farm is full, stopping auto planting.")
         return false
     end
 
@@ -105,7 +166,7 @@ function m:PlantSeed(_seedName, _numToPlant, _plantingPosition)
     end
     
     if not tool then
-        print("No seed tool found for seed:", _seedName)
+        Window:ShowWarning("Auto Planting", "No seed for: " .. _seedName)
 
         return false
     end
@@ -121,13 +182,14 @@ function m:PlantSeed(_seedName, _numToPlant, _plantingPosition)
         position = Garden:GetFarmBackLeftPosition()
     end
     if not position then
-        warn("Failed to get farm position for planting")
+        Window:ShowWarning("Auto Planting", "Failed to get farm position for planting")
         return false
     end
 
     local plantTask = function(_numToPlant, _seedName, _position)
         for i = 1, _numToPlant do
             if #PlantsPhysical:GetChildren() >= 800 then
+                Window:ShowWarning("Auto Planting", "Farm is full, stopping auto planting.")
                 break
             end            
             Core.ReplicatedStorage.GameEvents.Plant_RE:FireServer(_position, _seedName)
@@ -147,12 +209,12 @@ end
 
 function m:FindPlants(plantName)
     if not plantName or type(plantName) ~= "string" then
-        warn("Invalid plant name")
+        Window:ShowWarning("Planting", "Invalid plant name")
         return nil
     end
 
     if not PlantsPhysical then
-        warn("PlantsPhysical not found")
+        Window:ShowWarning("Planting", "PlantsPhysical not found")
         return nil
     end
 
@@ -173,6 +235,7 @@ function m:StartAutoPlanting()
 
     -- Cache plant count once at the beginning
     if #PlantsPhysical:GetChildren() >= 800 then
+        Window:ShowWarning("Auto Planting", "Farm is full, stopping auto planting.")
         task.wait(30) -- Much longer wait when farm is full
         return
     end
@@ -310,7 +373,7 @@ function m:IsMaxInventory()
     local character = Core.LocalPlayer
     local backpack = Core:GetBackpack()
     if not character or not backpack then
-        warn("FarmUtils:IsMaxFruitInventory - Character or Backpack not found")
+        Window:ShowWarning("Inventory Check", "Character or Backpack not found")
         return false
     end
 
@@ -544,9 +607,7 @@ function m:MovePlant()
 
             local flatPlantPosition = Vector3.new(plant:GetPivot().Position.X, 0, plant:GetPivot().Position.Z)
             local magnitudePlant = (flatPlantPosition - flatPosition).Magnitude
-            print("Moving plant:", plant.Name, "Distance to target:", magnitudePlant)
             if magnitudePlant > -5 and magnitudePlant < 5 then
-                Window:ShowWarning("Plant Mover", "Plant is too close to the destination: " .. plant.Name)
                 continue
             end
 
@@ -735,6 +796,139 @@ function m:ReclaimSelectedPlants()
             reclaimTask(plantToReclaim)
         end
     )
+end
+
+function m:GetSprinklersRegistry()
+    local sprinklers = {}
+    local sprinklerData = require(Core.ReplicatedStorage.Data.SprinklerData)
+    for sprinklerName, _ in pairs(sprinklerData.SprinklerDurations) do
+        sprinklers[sprinklerName] = 0
+    end
+
+    for _, tool in next, Player:GetAllTools() do
+        if tool:GetAttribute("b") ~= "d" then
+            continue
+        end
+
+        local sprinklerName = tool:GetAttribute("f")
+        if sprinklers[sprinklerName] then
+            sprinklers[sprinklerName] = tool:GetAttribute("e") or 0
+        end
+    end
+
+    local listSprinklers = {}
+    for sprinklerName, quantity in pairs(sprinklers) do
+        table.insert(listSprinklers, {
+            name = sprinklerName,
+            quantity = quantity,
+        })
+    end
+
+    table.sort(listSprinklers, function(a, b)
+        return a.name < b.name
+    end)
+
+    return listSprinklers
+end
+
+function m:AutoPlaceSprinklers()
+    if not Window:GetConfigValue("AutoPlaceSprinklers") then
+        return
+    end
+
+    local selectedSprinkler = Window:GetConfigValue("SprinklersToPlace") or {}
+    if not selectedSprinkler then
+        Window:ShowWarning("Auto Sprinkler", "No sprinkler type selected")
+        return
+    end
+
+    local placedSprinklers = {}
+    for _, obj in pairs(ObjectsPhysical:GetChildren()) do
+        local lifetime = obj:GetAttribute("Lifetime") or 0
+        if lifetime <= 0 then
+            continue
+        end
+        placedSprinklers[obj.Name] = lifetime
+    end
+
+    local sprinklerNotPlaced = {}
+    for _, sprinklerName in pairs(selectedSprinkler) do
+        if not placedSprinklers[sprinklerName] then
+            table.insert(sprinklerNotPlaced, sprinklerName)
+        end
+    end
+
+    if #sprinklerNotPlaced == 0 then
+        -- Get faster lifetime sprinkler to wait for
+        local minLifetime = math.huge -- Initialize with a very large number
+        for _, lifetime in pairs(placedSprinklers) do
+            if lifetime < minLifetime then
+                minLifetime = lifetime
+            end
+        end
+        
+        -- If no valid lifetime found, default to 30 seconds
+        if minLifetime == math.huge then
+            minLifetime = 30
+        end
+        
+        Window:ShowInfo("Auto Sprinkler", "Waiting " .. tostring(math.floor(minLifetime)) .. "s for next sprinkler.")
+        task.wait(minLifetime + 0.1) -- Wait a bit longer than the minimum lifetime
+        return
+    end
+
+    local sprinkleTools = {}
+    for _, tool in next, Player:GetAllTools() do
+        if tool:GetAttribute("b") ~= "d" then
+            continue
+        end
+
+        if table.find(sprinklerNotPlaced, tool:GetAttribute("f")) then
+            table.insert(sprinkleTools, tool)
+        end
+    end
+    
+    if #sprinkleTools == 0 then
+        Window:ShowWarning("Auto Sprinkler", "No sprinkler found in inventory")
+        return
+    end
+
+    local selectedSprinklerPosition = Window:GetConfigValue("SprinklerPlacingPosition") or "Random"
+    local position = Garden:GetFarmRandomPosition()
+    if selectedSprinklerPosition == "Front Right" then
+        position = Garden:GetFarmFrontRightPosition()
+    elseif selectedSprinklerPosition == "Front Left" then
+        position = Garden:GetFarmFrontLeftPosition()
+    elseif selectedSprinklerPosition == "Back Right" then
+        position = Garden:GetFarmBackRightPosition()
+    elseif selectedSprinklerPosition == "Back Left" then
+        position = Garden:GetFarmBackLeftPosition()
+    end
+
+    if not position then
+        Window:ShowWarning("Auto Sprinkler", "Failed to get farm position for sprinkler")
+        return
+    end
+
+    -- Generate a random rotation for natural placement
+    local function getRandomCFrame(pos)
+        local randomAngle = math.rad(math.random(0, 360))
+        return CFrame.new(pos.X, 0.5, pos.Z) * CFrame.Angles(0, randomAngle, 0)
+    end
+
+    for _, tool in pairs(sprinkleTools) do
+        Player:AddToQueue(
+            tool,
+            20,         -- priority (low)
+            function()
+                local cframe = getRandomCFrame(position)
+                Core.ReplicatedStorage.GameEvents.SprinklerService:FireServer(
+                    "Create",
+                    cframe
+                )
+                task.wait(0.5) -- Add delay between placements
+            end)
+    end
 end
 
 return m

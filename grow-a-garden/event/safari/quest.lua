@@ -87,7 +87,6 @@ function m:StartAutoHarvest()
                 continue
             end
             
-            print("Plant detail:", plantDetail.name)
             for _, fruit in pairs(plantDetail.fruits) do
                 if plantDetail.isGrowing then
                     continue
