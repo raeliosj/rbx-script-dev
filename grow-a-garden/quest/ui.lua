@@ -32,6 +32,10 @@ function m:CreateQuestTab()
 end
 
 local function getTimeRemaining()
+    if not AscensionItem then
+        return "N/A"
+    end
+    
     if not AscensionItem.NextRebirthSubmitTime then
         return "N/A"
     end
@@ -77,6 +81,10 @@ function m:AscensionSection(tab)
     })
 
     accordion:AddLabel(function()
+        if not AscensionItem then
+            return "Current Quest: N/A"
+        end
+
         return "Current Quest: ".. (AscensionItem.Amount or 0) .. " " .. (AscensionItem.Name or "Unknown") .. " (" .. (AscensionItem.Mutations ~= "" and AscensionItem.Mutations or "No Mutation") .. ")"
     end)
     accordion:AddLabel(function()
