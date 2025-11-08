@@ -23,7 +23,7 @@ function m:Init(_window, _core, _plant)
 end
 
 function m:GetQuestPlantType()
-    local questText = Core.Workspace.Interaction.UpdateItems.SafariEvent["Safari platform"].NPC["Safari Joyce"].Head.BubblePart.SafariTraitBillboard.BG.TraitTextLabel.Text
+    local questText = Core.Workspace.SafariEvent["Safari platform"].NPC["Safari Joyce"].Head.BubblePart.SafariTraitBillboard.BG.TraitTextLabel.Text
     local plantType = string.match(questText, "<font.-%>(.-)</font>")
 
     -- Remove wording Plants
