@@ -294,6 +294,8 @@ function m:HatchEgg()
 
     if hatchPetTeam then
         Window:ShowInfo("Egg Hatching", "Changing to hatch pet team: " .. hatchPetTeam)
+        Pet:ChangeTeamPets(hatchPetTeam, "hatch")
+
         task.wait(2)
         if boostBeforeHatch then
             Window:ShowInfo("Egg Hatching", "Boosting all active pets before hatch")
@@ -309,16 +311,9 @@ function m:HatchEgg()
         local petName = eggData and eggData.Type or "Unknown"
 
         local isSpecialPet = false
-        for _, specialPet in ipairs(specialHatchingPets) do
-            if petName == specialPet then
-                Window:ShowInfo("Egg Hatching", "Deferring hatching of special pet " .. petName .. " to special hatch team.")
-                table.insert(specialHatchingEgg, egg)
-                isSpecialPet = true
-                break
-            end
-        end
-
-        if isSpecialPet then
+        if table.find(specialHatchingPets, petName) then
+            Window:ShowInfo("Egg Hatching", "Deferring hatching of special pet " .. petName .. " to special hatch team.")
+            table.insert(specialHatchingEgg, egg)
             continue
         end
 
@@ -327,6 +322,7 @@ function m:HatchEgg()
             table.insert(specialHatchingEgg, egg)
             continue
         end
+        
         Core.ReplicatedStorage.GameEvents.PetEggService:FireServer("HatchPet", egg)
     end
 
