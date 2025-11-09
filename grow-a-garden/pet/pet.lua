@@ -6,16 +6,17 @@ local Window
 local Garden
 local PetTeam
 local Webhook
-
+local Rarity
 m.CurrentPetTeam = "core"
 
-function m:Init(_core, _player, _window, _garden, _petTeam, _webhook)
+function m:Init(_core, _player, _window, _garden, _petTeam, _webhook, _rarity)
     Core = _core
     Player = _player
     Window = _window
     Garden = _garden
     PetTeam = _petTeam
     Webhook = _webhook
+    Rarity = _rarity
 
     Core:MakeLoop(function()
         return Window:GetConfigValue("AutoBoostPets")
@@ -34,6 +35,12 @@ function m:Init(_core, _player, _window, _garden, _petTeam, _webhook)
     end, function()
         self:StartAutoLeveling()
     end)
+
+    Core:MakeLoop(function()
+        return Window:GetConfigValue("AutoBulkingPets")
+    end, function()
+        self:StartAutoBulking()
+    end)
 end
 
 function m:GetPetReplicationData()
@@ -48,12 +55,10 @@ function m:GetAllActivePets()
     end)
     
     if not success then
-        warn("🐾 [GET ACTIVE] Failed to get replication data:", replicationData)
         return nil
     end
     
     if not replicationData or not replicationData.ActivePetStates then
-        warn("🐾 [GET ACTIVE] Invalid replication data structure")
         return nil
     end
     
@@ -61,18 +66,13 @@ function m:GetAllActivePets()
     local playerName = Core.LocalPlayer.Name
     local playerId = tostring(Core.LocalPlayer.UserId)
     
-    -- Try multiple ways to find player's pets
     local playerPets = activePetStates[playerName] 
                     or activePetStates[playerId]
                     or activePetStates[tonumber(playerId)]
     
     if not playerPets then
-        print("🐾 [GET ACTIVE] No active pets found for player:", playerName)
-        -- Debug: Show available keys
-        print("🐾 [GET ACTIVE] Available keys in ActivePetStates:")
-        for key, _ in pairs(activePetStates) do
-            print("  - Key:", key, "Type:", type(key))
-        end
+        Window:ShowWarning("Pet Data","No active pets found for player: " .. playerName)
+        return nil
     end
     
     return playerPets
@@ -81,12 +81,12 @@ end
 function m:GetPlayerPetData()
     local success, replicationData = pcall(self.GetPetReplicationData, self)
     if not success then
-        warn("🐾 [GET DATA] Failed to get replication data:", replicationData)
+        Window:ShowWarning("Pet Data","Failed to get replication data:" .. tostring(replicationData))
         return nil
     end
     
     if not replicationData or not replicationData.PlayerPetData then
-        warn("🐾 [GET DATA] Invalid PlayerPetData structure")
+        Window:ShowWarning("Pet Data","Invalid PlayerPetData structure")
         return nil
     end
     
@@ -100,12 +100,8 @@ function m:GetPlayerPetData()
                     or playerPetData[tonumber(playerId)]
     
     if not playerData then
-        print("🐾 [GET DATA] No pet data found for player:", playerName)
-        -- Debug: Show available keys
-        print("🐾 [GET DATA] Available keys in PlayerPetData:")
-        for key, _ in pairs(playerPetData) do
-            print("  - Key:", key, "Type:", type(key))
-        end
+        Window:ShowWarning("Pet Data", "No pet data found for player:" .. playerName)
+        return nil
     end
     
     return playerData
@@ -121,14 +117,14 @@ end
 
 function m:EquipPet(_petID)
     if not _petID then
-        warn("🐾 [EQUIP] Invalid pet ID provided")
+        Window:ShowWarning("Equip Pet", "Invalid pet ID provided")
         return false
     end
     
     local success = pcall(function()
         local position = CFrame.new(Garden:GetFarmCenterPosition())
         if not position then
-            error("Failed to get farm center position")
+            Window:ShowWarning("Equip Pet","Failed to get farm center position")
         end
         
         Core.ReplicatedStorage.GameEvents.PetsService:FireServer(
@@ -139,7 +135,7 @@ function m:EquipPet(_petID)
     end)
     
     if not success then
-        warn("🐾 [EQUIP] Failed to equip pet:", _petID)
+        Window:ShowWarning("Equip Pet","Failed to equip pet:" .. _petID)
         return false
     end
     
@@ -148,7 +144,7 @@ end
 
 function m:UnequipPet(_petID)
     if not _petID then
-        warn("🐾 [UNEQUIP] Invalid pet ID provided")
+        Window:ShowWarning("Unequip Pet","Invalid pet ID provided")
         return false
     end
     
@@ -160,7 +156,7 @@ function m:UnequipPet(_petID)
     end)
     
     if not success then
-        warn("🐾 [UNEQUIP] Failed to unequip pet:", _petID)
+        Window:ShowWarning("Unequip Pet","Failed to unequip pet:" .. _petID)
         return false
     end
     
@@ -179,7 +175,7 @@ function m:ChangeTeamPets(_teamName, _teamType)
     local pets = PetTeam:FindPetTeam(_teamName)
 
     if not pets or #pets == 0 then
-        warn("🐾 [CHANGE TEAM] No pets found in the team:", _teamName)
+        Window:ShowWarning("Change Team Pet","No pets found in the team:" .. _teamName)
         return false
     end
 
@@ -187,7 +183,7 @@ function m:ChangeTeamPets(_teamName, _teamType)
     local activePets = self:GetAllActivePets() or {}
     
     if not activePets then
-        print("🐾 [CHANGE TEAM] No active pets to unequip")
+        Window:ShowWarning("Change Team Pet","No active pets to unequip")
     end
 
     for petID, _ in pairs(activePets) do
@@ -196,7 +192,7 @@ function m:ChangeTeamPets(_teamName, _teamType)
         end)
         
         if not success then
-            warn("🐾 [CHANGE TEAM] Failed to unequip pet:", petID)
+            Window:ShowWarning("Change Team Pet","Failed to unequip pet:" .. petID)
         end
         
         task.wait(0.25) -- Longer delay to ensure server processes
@@ -212,7 +208,7 @@ function m:ChangeTeamPets(_teamName, _teamType)
         end)
         
         if not success then
-            warn("🐾 [CHANGE TEAM] Failed to equip pet:", petID)
+            Window:ShowWarning("Change Team Pet","Failed to equip pet:" .. petID)
         end
         
         task.wait(0.25) -- Longer delay between equips
@@ -264,13 +260,13 @@ end
 function m:BoostSelectedPets()
     local petIDs = Window:GetConfigValue("BoostPets") or {}
     if #petIDs == 0 then
-        print("No pets selected for boosting.")
+        Window:ShowWarning("Boost Pets","No pets selected for boosting.")
         return
     end
 
     local boostTypes = Window:GetConfigValue("BoostType") or {}
     if #boostTypes == 0 then
-        print("No boost types selected.")
+        Window:ShowWarning("Boost Pets", "No boost types selected.")
         return
     end
 
@@ -281,7 +277,7 @@ function m:BoostSelectedPets()
         end
 
         if #extractedType ~= 2 then
-            warn("Invalid boost type format:", boostType)
+            Window:ShowWarning("Boost Pets", "Invalid boost type format:" .. boostType)
             continue
         end
 
@@ -300,7 +296,7 @@ function m:BoostSelectedPets()
         end
 
         if not boostTool then
-            warn("No boost tool found for type:", boostType)
+            Window:ShowWarning("Boost Pets", "No boost tool found for type:" .. boostType)
             return
         end
 
@@ -335,13 +331,13 @@ function m:AutoBoostSelectedPets()
 
     local petIDs = Window:GetConfigValue("BoostPets") or {}
     if #petIDs == 0 then
-        print("No pets selected for boosting.")
+        Window:ShowWarning("Boost Pets", "No pets selected for boosting.")
         return
     end
 
     local boostTypes = Window:GetConfigValue("BoostType") or {}
     if #boostTypes == 0 then
-        print("No boost types selected.")
+        Window:ShowWarning("Boost Pets", "No boost types selected.")
         return
     end
 
@@ -388,7 +384,7 @@ function m:BoostAllActivePets()
     end
     
     if #boostTool == 0 then
-        print("No boost tool found in inventory.")
+        Window:ShowWarning("Boost Pets", "No boost tool found in inventory.")
         return
     end
     
@@ -398,15 +394,15 @@ function m:BoostAllActivePets()
         local isTaskCompleted = false
 
         local boostingPetTask = function(_boostType, _boostAmount)
-            print("🚀 Starting boost task for tool:", tool.Name)
+            Window:ShowInfo("Boost Pets", "Starting boost task for tool: " .. tool.Name)
             for petID, _ in pairs(self:GetAllActivePets()) do
                 local isEligible = self:EligiblePetUseBoost(petID, _boostType, _boostAmount)
 
                 if not isEligible then
                     continue
                 end
-
-                print("🐾 Boosting pet:", petID, "with", _boostType, "amount:", _boostAmount)
+                
+                Window:ShowInfo("Boost Pets", "Boosting pet: " .. petID .. " with " .. _boostType .. " amount: " .. _boostAmount)
                 self:BoostPet(petID)
                 task.wait(0.15)
             end
@@ -453,14 +449,14 @@ function m:GetPetDetail(_petID)
 
     local petData = self:GetPetData(_petID)
     if not petData then
-        warn("Pet data not found for UUID:", _petID)
+        Window:ShowWarning("Pet Details", "Pet data not found for UUID:" .. _petID)
         return nil
     end
 
     local petDetail = petData.PetData
 
     if not petDetail then
-        warn("Pet detail is nil for UUID:", _petID)
+        Window:ShowWarning("Pet Details", "Pet detail is nil for UUID:" .. _petID)
         return nil
     end
 
@@ -498,7 +494,7 @@ function m:GetAllMyPets()
     for _, tool in pairs(self:GetAllOwnedPets()) do
         local petID = tool:GetAttribute("PET_UUID")
         if not petID then
-            warn("Pet tool missing PET_UUID attribute:", tool.Name)
+            Window:ShowWarning("Pet Details", "Pet tool missing PET_UUID attribute:" .. tool.Name)
             continue
         end
 
@@ -510,7 +506,7 @@ function m:GetAllMyPets()
 
     for petID, _ in pairs(self:GetAllActivePets()) do
         if not petID then
-            warn("Active pet entry missing PET_UUID")
+            Window:ShowWarning("Pet Details", "Active pet entry missing PET_UUID")
             continue
         end
         
@@ -523,7 +519,7 @@ function m:GetAllMyPets()
     for _, pet in pairs(pets) do
         local petDetail = self:GetPetDetail(pet.ID)
         if not petDetail  then
-            warn("Pet detail not found for UUID:", pet.ID)
+            Window:ShowWarning("Pet Details", "Pet detail not found for UUID:" .. pet.ID)
             continue
         end
 
@@ -569,58 +565,97 @@ function m:SerializePet(pet)
     )
 end
 
+function m:FindEggByPetName(petName)
+    local PetEggs = require(Core.ReplicatedStorage.Data.PetRegistry.PetEggs)
+    
+    -- List of eggs to exclude (fake/test eggs)
+    local excludedEggs = {
+        ["Fake Egg"] = true,
+        -- Add other test/fake eggs here if needed
+    }
+    
+    -- Iterate through all eggs
+    for eggName, eggData in pairs(PetEggs) do
+        -- Skip excluded eggs
+        if excludedEggs[eggName] then
+            continue
+        end
+        
+        -- Check if RarityData and Items exist
+        if eggData.RarityData and eggData.RarityData.Items then
+            -- Check if the pet exists in this egg
+            if eggData.RarityData.Items[petName] then
+                return eggName -- Return the egg name
+            end
+        end
+    end
+
+    return "Fake Egg" -- Pet not found in any egg
+end
+
 function m:GetPetRegistry()
     local success, petRegistry = pcall(function()
         return require(Core.ReplicatedStorage.Data.PetRegistry)
     end)
-    
-    if not success then           
-        warn("Failed to get pet registry:", petRegistry)
+
+    if not success then
+        Window:ShowWarning("Pet Registry", "Failed to get pet registry:" .. petRegistry)
         return {}
     end
 
     local petList = petRegistry.PetList
     if not petList then
-        warn("PetList is nil or not found")
+        Window:ShowWarning("Pet Registry", "PetList is nil or not found")
         return {}
     end
 
     -- Convert PetList to UI format {text = ..., value = ...}
-    local formattedPets = {}
+    local listPets = {}
     for petName, petData in pairs(petList) do
-        table.insert(formattedPets, {
-            text = petName,
-            value = petName
+        local eggName = self:FindEggByPetName(petName)
+        table.insert(listPets, {
+            Name = petName,
+            Rarity = petData.Rarity or "Unknown",
+            Egg = eggName
         })
     end
     
-    if #formattedPets < 1 then
+    if #listPets < 1 then
         return {}
     end
 
     -- Sort pets alphabetically (ascending order)
-    table.sort(formattedPets, function(a, b)
-        if not a or not b or not a.text or not b.text then
-            return false
+    table.sort(listPets, function(a, b)
+        local eggA = a.Egg or "Unknown"
+        local eggB = b.Egg or "Unknown"
+        if eggA ~= eggB then
+            return string.lower(tostring(eggA)) < string.lower(tostring(eggB))
         end
-        return string.lower(tostring(a.text)) < string.lower(tostring(b.text))
+
+        local rarityA = Rarity.RarityOrder[a.Rarity] or 99
+        local rarityB = Rarity.RarityOrder[b.Rarity] or 99
+        if rarityA ~= rarityB then
+            return rarityA < rarityB
+        end
+
+        return string.lower(tostring(a.Name)) < string.lower(tostring(b.Name))
     end)
                 
-    return formattedPets
+    return listPets
 end
 
 function m:SellPet()
     local petNames = Window:GetConfigValue("PetToSell") or {}
     local weighLessThan = Window:GetConfigValue("WeightThresholdSellPet") or 1
-    local ageLessThan = Window:GetConfigValue("AgeThresholdSellPet") or 1
+    local ageLessThan = (Window:GetConfigValue("AgeThresholdSellPet") or 0) - 1
     local sellPetTeam = Window:GetConfigValue("SellPetTeam") or nil
     local boostBeforeSelling = Window:GetConfigValue("AutoBoostBeforeSelling") or false
     local corePetTeam = Window:GetConfigValue("CorePetTeam") or nil
 
     if #petNames == 0 then
-        print("No pet selected for selling.")
+        Window:ShowWarning("Sell Pets","No pet names selected for selling.")
         if corePetTeam then
-            print("Reverting to Core Pet Team:", corePetTeam)
+            Window:ShowInfo("Sell Pets", "Reverting to Core Pet Team: " .. corePetTeam)
             self:ChangeTeamPets(corePetTeam, "core")
         end
         return
@@ -636,13 +671,13 @@ function m:SellPet()
         local petID = tool:GetAttribute("PET_UUID")
         local petData = self:GetPetData(petID)
         if not petData then
-            warn("Pet data not found for UUID:", petID)
+            Window:ShowWarning("Sell Pets","Pet data not found for UUID: " .. tostring(petID))
             continue
         end
 
         local petName = petData.PetType or "Unknown"
         local petDetail = petData.PetData
-        local petWeight = petDetail.BaseWeight or 20
+        local petWeight = petDetail.BaseWeight or 3.0
         local petAge = petDetail.Level or math.huge
 
         local isPetNameMatched = false
@@ -654,8 +689,7 @@ function m:SellPet()
         end
 
         if petWeight >= weighLessThan or petAge >= ageLessThan or not isPetNameMatched then
-            print("Skipping pet (does not meet sell criteria):", petName, "| Weight:", petWeight, "| Age:", petAge, "| Is Name Matched:", tostring(isPetNameMatched))
-
+            Window:ShowInfo("Sell Pets","Favoriting pet: " .. petName .. " | Weight: " .. tostring(petWeight) .. " | Age: " .. tostring(petAge))
             Core.ReplicatedStorage.GameEvents.Favorite_Item:FireServer(tool)
             task.wait(0.15)
         end
@@ -664,26 +698,29 @@ function m:SellPet()
     task.wait(0.5) -- Wait for favorites to process
     
     if sellPetTeam then
+        Window:ShowInfo("Sell Pets", "Switching to Sell Pet Team: " .. sellPetTeam)
         self:ChangeTeamPets(sellPetTeam, "sell")
         task.wait(2)
         if boostBeforeSelling then
+            Window:ShowInfo("Sell Pets", "Boosting all active pets before selling")
             self:BoostAllActivePets()
         end
     end
 
     task.wait(1) -- Wait before selling
-
+    Window:ShowInfo("Sell Pets", "Selling all unequipped pets...")
     Core.ReplicatedStorage.GameEvents.SellAllPets_RE:FireServer()
     task.wait(1) -- Wait for selling to process
     
     if corePetTeam then
+        Window:ShowInfo("Sell Pets", "Reverting to Core Pet Team: " .. corePetTeam)
         self:ChangeTeamPets(corePetTeam, "core")
     end
 end
 
 function m:GetModelPet(_petID)
-        if not _petID then
-        warn("Invalid pet ID provided")
+    if not _petID then
+        Window:ShowWarning("Get Model Pet","Invalid pet ID provided")
         return nil
     end
 
@@ -691,19 +728,18 @@ function m:GetModelPet(_petID)
     for _, petMover in ipairs(workspace.PetsPhysical:GetChildren()) do
         local modelPet = petMover:FindFirstChild(_petID)
         if modelPet then
-            print("Model ditemukan:", modelPet)
             return modelPet
         end
     end
 
-    print("Model tidak ditemukan")
+    Window:ShowWarning("Get Model Pet", "Model not found")
     return nil
 end
 
 function m:CleansingMutation(_petID)
-    print("🐾 Cleansing mutation for pet ID:", _petID)
+    Window:ShowInfo("Cleansing Mutation", "Cleansing mutation for pet ID: " .. _petID)
     if not _petID then
-        warn("Invalid pet ID provided")
+        Window:ShowWarning("Cleansing Mutation", "Invalid pet ID provided")
         return false
     end
 
@@ -718,20 +754,19 @@ function m:CleansingMutation(_petID)
     end
 
     if not cleansingTool then
-        warn("No cleansing tool found")
+        Window:ShowWarning("Cleansing Mutation", "No cleansing tool found")
         return false
     end
 
     local isTaskCompleted = false
     local cleansingTask = function(_petID)
-        print("🐾 Applying cleansing shard to pet ID:", _petID)
         local petMover = self:GetModelPet(_petID)
         if not petMover then
-            warn("PetMover not found for pet ID:", _petID)
+            Window:ShowWarning("Cleansing Mutation", "PetMover not found for pet ID: " .. _petID)
             return
         end
-
-        print("Firing ApplyShard for pet ID:", _petID, "Mover:", petMover)
+        
+        Window:ShowInfo("Cleansing Mutation", "Applying cleansing shard to pet ID: " .. _petID)
         local success, error = pcall(function()
             Core.ReplicatedStorage.GameEvents.PetShardService_RE:FireServer(
                 "ApplyShard",
@@ -740,7 +775,7 @@ function m:CleansingMutation(_petID)
         end)
 
         if not success then
-            warn("Failed to apply cleansing shard:", error)
+            Window:ShowWarning("Cleansing Mutation", "Failed to apply cleansing shard: " .. error)
         end
         task.wait(1) -- Wait to ensure server processes the shard application
     end
@@ -764,16 +799,19 @@ function m:CleansingMutation(_petID)
 end
 
 function m:AutoNightmareMutation()
-    print("🐾 Checking Auto Nightmare Mutation settings...")
-    local autoNightmareMutation = Window:GetConfigValue("AutoNightmareMutation") or false
-    if not autoNightmareMutation then
-        print("Auto Nightmare Mutation is disabled.")
+    if not Window:GetConfigValue("AutoNightmareMutation") then
+        return
+    end
+
+    local nightMarePetTeam = Window:GetConfigValue("NightmareMutationPetTeam") or nil
+    if not nightMarePetTeam then
+        Window:ShowWarning("Nightmare Mutation", "No Nightmare Mutation Pet Team selected.")
         return
     end
 
     local petIDs = Window:GetConfigValue("NightmareMutationPets") or {}
     if #petIDs == 0 then
-        print("No pets selected for Nightmare Mutation.")
+        Window:ShowWarning("Nightmare Mutation","No pets selected for Nightmare Mutation.")
         return
     end
 
@@ -781,14 +819,12 @@ function m:AutoNightmareMutation()
     local isNoActivePet = true
 
     for _, petID in pairs(petIDs) do
-        print("Checking pet for Nightmare Mutation:", petID)
         local petDetail = self:GetPetDetail(petID)
         if not petDetail then
-            warn("Pet detail not found for UUID:", petID)
+            Window:ShowWarning("Nightmare Mutation","Pet detail not found for UUID: " .. petID)
             continue
         end
 
-        print("Pet detail:", self:SerializePet(petDetail))
         if not petDetail.IsActive then
             print("Pet is not active, skipping Nightmare Mutation:", petDetail.Name)
             continue
@@ -801,9 +837,8 @@ function m:AutoNightmareMutation()
             continue
         end
 
-        print("Checking mutation pet:", petDetail.Name)
         if petDetail.Mutation == "Nightmare" then
-            print("Pet already has Nightmare mutation, skipping:", petDetail.Name)
+            Window:ShowWarning("Nightmare Mutation","Pet already has Nightmare mutation :", petDetail.Name)
             task.spawn(function() 
                 Webhook:NightmareMutation(petDetail.Type, #petIDs - 1)
             end)
@@ -812,17 +847,15 @@ function m:AutoNightmareMutation()
             break
         end
 
-        print("Cleansing mutation for pet:", petDetail.Name)
+        Window:ShowInfo("Nightmare Mutation","Starting Cleansing Mutation for pet: " .. petDetail.Name)
         local success = self:CleansingMutation(petID)
         if not success then
-            warn("Failed to cleanse mutation for pet:", petDetail.Name)
+            Window:ShowWarning("Nightmare Mutation","Failed to cleanse mutation for pet:", petDetail.Name)
             continue
         end
     end
 
     if isPetIDAlreadyNightmare ~= "" then
-        print("At least one selected pet already has Nightmare mutation. Aborting process.")
-        
         self:UnequipPet(isPetIDAlreadyNightmare)
         task.wait(1)
 
@@ -843,31 +876,37 @@ function m:AutoNightmareMutation()
     end
 
     while m.CurrentPetTeam ~= "core" do
-        print("Waiting to switch back to Core Pet Team...")
+        Window:ShowInfo("Nightmare Mutation","Waiting to switch back to Core Pet Team...")
         task.wait(1)
     end
 
-    print("No active pet found. Equipping the first selected pet:", petIDs[1])
+    Window:ShowInfo("Nightmare Mutation", "Starting Nightmare Mutation New Target Pet")
+    self:ChangeTeamPets(nightMarePetTeam, "core")
     self:EquipPet(petIDs[1])
 end
 
 function m:StartAutoLeveling()
     local autoLeveling = Window:GetConfigValue("AutoLevelingPets") or false
     local levelToReach = Window:GetConfigValue("LevelToReach") or 100
+    local levelingPetTeam = Window:GetConfigValue("LevelingPetTeam") or nil
     
     if not autoLeveling then
-        print("Auto Leveling is disabled.")
         return
     end
 
     if levelToReach < 1 then
-        print("Invalid level to reach for Auto Leveling:", levelToReach)
+        Window:ShowWarning("Auto Leveling", "Invalid level to reach for Auto Leveling: " .. levelToReach)
+        return
+    end
+
+    if not levelingPetTeam then
+        Window:ShowWarning("Auto Leveling", "No Leveling Pet Team selected.")
         return
     end
 
     local petIDs = Window:GetConfigValue("LevelingPets") or {}
     if #petIDs == 0 then
-        print("No pets selected for Auto Leveling.")
+        Window:ShowWarning("Auto Leveling", "No pets selected for Auto Leveling.")
         return
     end
 
@@ -875,21 +914,19 @@ function m:StartAutoLeveling()
     local isNoActivePet = true
 
     for _, petID in pairs(petIDs) do
-        print("Starting Auto Leveling for pet:", petID)
         local petDetail = self:GetPetDetail(petID)
         if not petDetail then
-            warn("Pet detail not found for UUID:", petID)
+            Window:ShowWarning("Auto Leveling"," Pet detail not found for UUID: " .. petID)
             continue
         end
 
         if not petDetail.IsActive then
-            print("Pet is not active, skipping Auto Leveling:", petDetail.Name)
             continue
         end
 
         isNoActivePet = false
         if petDetail.Age >= levelToReach then
-            print("Pet already reached the target level, skipping:", petDetail.Name)
+            Window:ShowInfo("Auto Leveling", "Pet already reached the target level: " .. petDetail.Name)
             task.spawn(function() 
                 Webhook:Leveling(petDetail.Type, petDetail.Age, #petIDs - 1)
             end)
@@ -900,8 +937,6 @@ function m:StartAutoLeveling()
     end
 
     if isPetIDAlreadyAtTargetLevel ~= "" then
-        print("At least one selected pet already reached the target level. Aborting process.")
-        
         self:UnequipPet(isPetIDAlreadyAtTargetLevel)
         task.wait(1)
 
@@ -927,7 +962,85 @@ function m:StartAutoLeveling()
         task.wait(1)
     end
 
-    print("No active pet found. Equipping the first selected pet:", petIDs[1])
+    Window:ShowInfo("Auto Leveling", "Starting Auto Leveling New Target Pet")
+    self:ChangeTeamPets(levelingPetTeam, "core")
+    self:EquipPet(petIDs[1])
+end
+
+function m:StartAutoBulking()
+    local autoBulking = Window:GetConfigValue("AutoBulkingPets") or false
+    local bulkingPetTeam = Window:GetConfigValue("BulkingPetTeam") or nil
+    local petIDs = Window:GetConfigValue("BulkingPets") or {}
+    local bulkToReach = Window:GetConfigValue("BulkingToWeight") or 1
+
+    if not autoBulking then
+        return
+    end
+
+    if not bulkingPetTeam then
+        Window:ShowWarning("Auto Bulking", "No Bulking Pet Team selected.")
+        return
+    end
+
+    if #petIDs == 0 then
+        Window:ShowWarning("Auto Bulking", "No pets selected for Auto Bulking.")
+        return
+    end
+
+    local isPetIDAlreadyAtTargetWeight = ""
+    local isNoActivePet = true
+
+    for _, petID in pairs(petIDs) do
+        local petDetail = self:GetPetDetail(petID)
+        if not petDetail then
+            Window:ShowWarning("Auto Bulking", "Pet detail not found for UUID: " .. petID)
+            continue
+        end
+
+        if not petDetail.IsActive then
+            continue
+        end
+
+        isNoActivePet = false
+        if petDetail.BaseWeight >= bulkToReach then
+            Window:ShowInfo("Auto Bulking", "Pet already reached the target weight: " .. petDetail.Name)
+            task.spawn(function() 
+                Webhook:Bulking(petDetail.Type, petDetail.BaseWeight, #petIDs - 1)
+            end)
+
+            isPetIDAlreadyAtTargetWeight = petID
+            break
+        end
+    end
+
+    if isPetIDAlreadyAtTargetWeight ~= "" then
+        self:UnequipPet(isPetIDAlreadyAtTargetWeight)
+        task.wait(1)
+
+        -- Remove from selected pets to avoid reprocessing
+        for index, id in ipairs(petIDs) do
+            if id == isPetIDAlreadyAtTargetWeight then
+                table.remove(petIDs, index)
+                break
+            end
+        end
+
+        Window:SetConfigValue("BulkingPets", petIDs)
+
+        isNoActivePet = true
+    end
+
+    if not isNoActivePet then
+        return
+    end
+
+    while m.CurrentPetTeam ~= "core" do
+        Window:ShowInfo("Auto Bulking", "Waiting to switch back to Core Pet Team...")
+        task.wait(1)
+    end
+
+    Window:ShowInfo("Auto Bulking", "Starting Auto Bulking New Target Pet")
+    self:ChangeTeamPets(bulkingPetTeam, "core")
     self:EquipPet(petIDs[1])
 end
 

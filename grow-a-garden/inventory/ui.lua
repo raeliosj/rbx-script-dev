@@ -34,9 +34,18 @@ function m:AddPetSection(tab)
         Placeholder = "Select a pet",
         MultiSelect = true,
         Flag = "AutoFavoritePetName",
-       OnInit = function(api, optionsData)
-            local specialPets = Pet:GetPetRegistry()
-            optionsData.updateOptions(specialPets)
+        OnInit = function(api, optionsData)
+            local listPets = Pet:GetPetRegistry()
+            local formattedPets = {}
+
+            for _, petInfo in pairs(listPets) do
+                table.insert(formattedPets, {
+                    text = string.format("[%s] %s (%s)", petInfo.Egg or "Unknown", petInfo.Name or "Unknown", petInfo.Rarity or "Unknown"),
+                    value = petInfo.Name or "Unknown",
+                })
+            end
+
+            optionsData.updateOptions(formattedPets)
         end
     })
 
