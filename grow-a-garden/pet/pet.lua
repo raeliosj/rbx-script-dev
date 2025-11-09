@@ -647,7 +647,7 @@ end
 function m:SellPet()
     local petNames = Window:GetConfigValue("PetToSell") or {}
     local weighLessThan = Window:GetConfigValue("WeightThresholdSellPet") or 1
-    local ageLessThan = (Window:GetConfigValue("AgeThresholdSellPet") or 0) - 1
+    local ageLessThan = Window:GetConfigValue("AgeThresholdSellPet") or 1
     local sellPetTeam = Window:GetConfigValue("SellPetTeam") or nil
     local boostBeforeSelling = Window:GetConfigValue("AutoBoostBeforeSelling") or false
     local corePetTeam = Window:GetConfigValue("CorePetTeam") or nil
@@ -677,7 +677,7 @@ function m:SellPet()
 
         local petName = petData.PetType or "Unknown"
         local petDetail = petData.PetData
-        local petWeight = petDetail.BaseWeight or 3.0
+        local petWeight = petDetail.BaseWeight or 20
         local petAge = petDetail.Level or math.huge
 
         local isPetNameMatched = false
@@ -689,7 +689,8 @@ function m:SellPet()
         end
 
         if petWeight >= weighLessThan or petAge >= ageLessThan or not isPetNameMatched then
-            Window:ShowInfo("Sell Pets","Favoriting pet: " .. petName .. " | Weight: " .. tostring(petWeight) .. " | Age: " .. tostring(petAge))
+            print("Favoriting pet:", petName, "| Weight:", petWeight, "| Age:", petAge, "| Is Name Matched:", tostring(isPetNameMatched))
+
             Core.ReplicatedStorage.GameEvents.Favorite_Item:FireServer(tool)
             task.wait(0.15)
         end
