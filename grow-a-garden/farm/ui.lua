@@ -48,12 +48,23 @@ function m:AddPlantingSection(tab)
             local formattedSeeds = {}
             for _, seedData in pairs(seeds) do
                 table.insert(formattedSeeds, {
-                    text = string.format("[%s] %s (%s)", seedData.rarity, seedData.plant, Core:FormatNumber(seedData.quantity)),
+                    text = string.format("[%s] %s (%s) Type: %s", seedData.rarity, seedData.plant, Core:FormatNumber(seedData.quantity), seedData.types),
                     value = seedData.plant
                 })
             end
             optionsData.updateOptions(formattedSeeds)
         end,
+        OnDropdownOpen = function(currentOptions, updateOptions)
+            local seeds = Plant:GetListSeedsAtInventory()
+            local formattedSeeds = {}
+            for _, seedData in pairs(seeds) do
+                table.insert(formattedSeeds, {
+                    text = string.format("[%s] %s (%s) Type: %s", seedData.rarity, seedData.plant, Core:FormatNumber(seedData.quantity), seedData.types),
+                    value = seedData.plant
+                })
+            end
+            updateOptions(formattedSeeds)
+        end
     })
 
     accordion:AddNumberBox({
@@ -217,16 +228,28 @@ function m:AddHarvestingSection(tab)
         MultiSelect = true,
         Placeholder = "Select plants...",
         OnInit = function(api, optionsData)
-            local plants = Plant:GetPlantRegistry()
+            local plants = Plant:GetListGardenPlants()
             local formattedPlants = {}
-            for _, plantData in pairs(plants) do
+            for _, dataPlant in pairs(plants) do
                 table.insert(formattedPlants, {
-                    text = plantData.plant,
-                    value = plantData.plant,
+                    text = string.format("[%s] %s (%s) Type: %s", dataPlant.rarity, dataPlant.plant, tostring(dataPlant.quantity), dataPlant.types),
+                    value = dataPlant.plant,
                 })
             end
             optionsData.updateOptions(formattedPlants)
         end,
+        OnDropdownOpen = function(currentOptions, updateOptions)
+            local plants = Plant:GetListGardenPlants()
+            local formattedPlants = {}
+            for _, dataPlant in pairs(plants) do
+                table.insert(formattedPlants, {
+                    text = string.format("[%s] %s (%s) Type: %s", dataPlant.rarity, dataPlant.plant, tostring(dataPlant.quantity), dataPlant.types),
+                    value = dataPlant.plant,
+                })
+            end
+
+            updateOptions(formattedPlants)
+        end
     })
     
     accordion:AddToggle({
@@ -262,10 +285,10 @@ function m:AddMovingSection(tab)
         OnInit = function(api, optionsData)
             local plants = Plant:GetListGardenPlants()
             local formattedPlants = {}
-            for plantName, plantCount in pairs(plants) do
+            for _, dataPlant in pairs(plants) do
                 table.insert(formattedPlants, {
-                    text = plantName .. " (" .. tostring(plantCount) .. ")",
-                    value = plantName,
+                    text = string.format("[%s] %s (%s) Type: %s", dataPlant.rarity, dataPlant.plant, tostring(dataPlant.quantity), dataPlant.types),
+                    value = dataPlant.plant,
                 })
             end
             optionsData.updateOptions(formattedPlants)
@@ -273,10 +296,10 @@ function m:AddMovingSection(tab)
         OnDropdownOpen = function(currentOptions, updateOptions)
             local plants = Plant:GetListGardenPlants()
             local formattedPlants = {}
-            for plantName, plantCount in pairs(plants) do
+            for _, dataPlant in pairs(plants) do
                 table.insert(formattedPlants, {
-                    text = plantName .. " (" .. tostring(plantCount) .. ")",
-                    value = plantName,
+                    text = string.format("[%s] %s (%s) Type: %s", dataPlant.rarity, dataPlant.plant, tostring(dataPlant.quantity), dataPlant.types),
+                    value = dataPlant.plant,
                 })
             end
 
@@ -312,10 +335,10 @@ function m:AddShovelSection(tab)
         OnInit = function(api, optionsData)
             local plants = Plant:GetListGardenPlants()
             local formattedPlants = {}
-            for plantName, plantCount in pairs(plants) do
+            for _, dataPlant in pairs(plants) do
                 table.insert(formattedPlants, {
-                    text = plantName .. " (" .. tostring(plantCount) .. ")",
-                    value = plantName,
+                    text = string.format("[%s] %s (%s) Type: %s", dataPlant.rarity, dataPlant.plant, tostring(dataPlant.quantity), dataPlant.types),
+                    value = dataPlant.plant,
                 })
             end
             optionsData.updateOptions(formattedPlants)
@@ -323,10 +346,10 @@ function m:AddShovelSection(tab)
         OnDropdownOpen = function(currentOptions, updateOptions)
             local plants = Plant:GetListGardenPlants()
             local formattedPlants = {}
-            for plantName, plantCount in pairs(plants) do
+            for _, dataPlant in pairs(plants) do
                 table.insert(formattedPlants, {
-                    text = plantName .. " (" .. tostring(plantCount) .. ")",
-                    value = plantName,
+                    text = string.format("[%s] %s (%s) Type: %s", dataPlant.rarity, dataPlant.plant, tostring(dataPlant.quantity), dataPlant.types),
+                    value = dataPlant.plant,
                 })
             end
 
@@ -363,10 +386,10 @@ function m:AddReclaimPlantSection(tab)
         OnInit = function(api, optionsData)
             local plants = Plant:GetListGardenPlants()
             local formattedPlants = {}
-            for plantName, plantCount in pairs(plants) do
+            for _, dataPlant in pairs(plants) do
                 table.insert(formattedPlants, {
-                    text = plantName .. " (" .. tostring(plantCount) .. ")",
-                    value = plantName,
+                    text = string.format("[%s] %s (%s) Type: %s", dataPlant.rarity, dataPlant.plant, tostring(dataPlant.quantity), dataPlant.types),
+                    value = dataPlant.plant,
                 })
             end
             optionsData.updateOptions(formattedPlants)
@@ -374,10 +397,10 @@ function m:AddReclaimPlantSection(tab)
         OnDropdownOpen = function(currentOptions, updateOptions)
             local plants = Plant:GetListGardenPlants()
             local formattedPlants = {}
-            for plantName, plantCount in pairs(plants) do
+            for _, dataPlant in pairs(plants) do
                 table.insert(formattedPlants, {
-                    text = plantName .. " (" .. tostring(plantCount) .. ")",
-                    value = plantName,
+                    text = string.format("[%s] %s (%s) Type: %s", dataPlant.rarity, dataPlant.plant, tostring(dataPlant.quantity), dataPlant.types),
+                    value = dataPlant.plant,
                 })
             end
 
