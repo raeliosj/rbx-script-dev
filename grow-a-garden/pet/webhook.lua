@@ -160,4 +160,37 @@ function m:Leveling(_petName, _petLevel, _remains)
     }
     Discord:SendMessage(url, message)
 end
+
+function m:Bulking(_petName, _petWeight, _remains)
+    local url = Window:GetConfigValue("DiscordWebhookURL") or ""
+    local pingId = Window:GetConfigValue("DiscordPingID") or ""
+    _remains = _remains or 0
+
+    if url == "" then
+        return
+    end
+
+    local content = pingId ~= "" and ("<@"..pingId..">") or nil
+
+    local message = {
+        content = _remains <= 0 and content,
+        embeds = {{
+            title = "**EzGarden**",
+            type = 'rich',
+            color = tonumber("0x0000FF"),
+            fields = {{
+                name = '**Profile : ** \n',
+                value = '> Username : ||'..PlayerName.."||",
+                inline = false
+            }, {
+                name = "**Pet has reached to weight : " ..(_petWeight or"N/A").." KG**",
+                value = "> Pet Name: ``"..(_petName or"N/A").."``"..
+                       "\n> Remains Queue: ``"..(_remains or"N/A").."``",
+                inline = false
+            }}
+        }}
+    }
+    Discord:SendMessage(url, message)
+end
+
 return m

@@ -29,6 +29,7 @@ function m:CreatePetTab()
     self:BoostPetsSection(tab)
     self:AutoNightmareMutationSection(tab)
     self:AutoLevelingSection(tab)
+    self:AutoBulkingSection(tab)
 end
 
 function m:AddPetTeamsSection(tab)
@@ -141,7 +142,7 @@ function m:AddEggsSection(tab)
         Placeholder = "Select Egg...",
         MultiSelect = false,
         Flag = "EggPlacing",
-       OnInit = function(api, optionsData)
+        OnInit = function(api, optionsData)
             local formattedEggs = {}
 
             local listdEggs = Egg:GetEggRegistry()
@@ -229,9 +230,18 @@ function m:AddEggsSection(tab)
         Placeholder = "Select Special Pet...",
         MultiSelect = true,
         Flag = "SpecialHatchingPet",
-       OnInit = function(api, optionsData)
-            local specialPets = Pet:GetPetRegistry()
-            optionsData.updateOptions(specialPets)
+        OnInit = function(api, optionsData)
+            local listPets = Pet:GetPetRegistry()
+            local formattedPets = {}
+            
+            for _, petInfo in pairs(listPets) do
+                table.insert(formattedPets, {
+                    text = string.format("[%s] %s (%s)", petInfo.Egg or "Unknown", petInfo.Name or "Unknown", petInfo.Rarity or "Unknown"),
+                    value = petInfo.Name or "Unknown",
+                })
+            end
+
+            optionsData.updateOptions(formattedPets)
         end
     })
     
@@ -306,9 +316,18 @@ function m:AddSellSection(tab)
         Placeholder = "Select Pet...",
         MultiSelect = true,
         Flag = "PetToSell",
-       OnInit = function(api, optionsData)
-            local specialPets = Pet:GetPetRegistry()
-            optionsData.updateOptions(specialPets)
+        OnInit = function(api, optionsData)
+            local listPets = Pet:GetPetRegistry()
+            local formattedPets = {}
+            
+            for _, petInfo in pairs(listPets) do
+                table.insert(formattedPets, {
+                    text = string.format("[%s] %s (%s)", petInfo.Egg or "Unknown", petInfo.Name or "Unknown", petInfo.Rarity or "Unknown"),
+                    value = petInfo.Name or "Unknown",
+                })
+            end
+
+            optionsData.updateOptions(formattedPets)
         end,
     })
 
@@ -458,9 +477,35 @@ function m:AutoNightmareMutationSection(tab)
     })
 
     accordion:AddSelectBox({
-        Name = "Target Pets for Nightmare Mutation",
+        Name = "Select Pet Team for Nightmare Mutation",
         Options = {"Loading..."},
         Placeholder = "Select Pet Team...",
+        MultiSelect = false,
+        Flag = "NightmareMutationPetTeam",
+        OnInit = function(api, optionsData)
+            local listTeamPet = PetTeam:GetAllPetTeams()
+            local currentOptionsSet = {}
+
+            for _, team in pairs(listTeamPet) do
+                table.insert(currentOptionsSet, {text = team, value = team})
+            end
+            optionsData.updateOptions(currentOptionsSet)
+        end,
+        OnDropdownOpen = function(currentOptions, updateOptions)
+            local listTeamPet = PetTeam:GetAllPetTeams()
+            local currentOptionsSet = {}
+
+            for _, team in pairs(listTeamPet) do
+                table.insert(currentOptionsSet, {text = team, value = team})
+            end
+            updateOptions(currentOptionsSet)
+        end
+    })
+
+    accordion:AddSelectBox({
+        Name = "Select Target Pets for Nightmare Mutation",
+        Options = {"Loading..."},
+        Placeholder = "Select Pets...",
         MultiSelect = true,
         Flag = "NightmareMutationPets",
         OnInit = function(api, optionsData)
@@ -486,12 +531,7 @@ function m:AutoNightmareMutationSection(tab)
     accordion:AddToggle({
         Name = "Auto Nightmare Mutation",
         Default = false,
-        Flag = "AutoNightmareMutation",
-        Callback = function(value)
-            if value then
-                Pet:StartAutoNightmareMutation()
-            end
-        end
+        Flag = "AutoNightmareMutation"
     })
 end
 
@@ -503,9 +543,35 @@ function m:AutoLevelingSection(tab)
     })
 
     accordion:AddSelectBox({
-        Name = "Pets Use for Auto Leveling",
+        Name = "Select Team Pets for Leveling",
         Options = {"Loading..."},
         Placeholder = "Select Pet Team...",
+        MultiSelect = false,
+        Flag = "LevelingPetTeam",
+        OnInit = function(api, optionsData)
+            local listTeamPet = PetTeam:GetAllPetTeams()
+            local currentOptionsSet = {}
+
+            for _, team in pairs(listTeamPet) do
+                table.insert(currentOptionsSet, {text = team, value = team})
+            end
+            optionsData.updateOptions(currentOptionsSet)
+        end,
+        OnDropdownOpen = function(currentOptions, updateOptions)
+            local listTeamPet = PetTeam:GetAllPetTeams()
+            local currentOptionsSet = {}
+
+            for _, team in pairs(listTeamPet) do
+                table.insert(currentOptionsSet, {text = team, value = team})
+            end
+            updateOptions(currentOptionsSet)
+        end
+    })
+
+    accordion:AddSelectBox({
+        Name = "Select Target Pets for Leveling",
+        Options = {"Loading..."},
+        Placeholder = "Select Pets...",
         MultiSelect = true,
         Flag = "LevelingPets",
         OnInit = function(api, optionsData)
@@ -541,12 +607,84 @@ function m:AutoLevelingSection(tab)
     accordion:AddToggle({
         Name = "Auto Leveling Pets",
         Default = false,
-        Flag = "AutoLevelingPets",
-        Callback = function(value)
-            if value then
-                Pet:StartAutoLeveling()
+        Flag = "AutoLevelingPets"
+    })
+end
+
+function m:AutoBulkingSection(tab)
+    local accordion = tab:AddAccordion({
+        Title = "Auto Bulking",
+        Icon = "🍖",
+        Expanded = false,
+    })
+
+    accordion:AddSelectBox({
+        Name = "Select Team Pets for Bulking",
+        Options = {"Loading..."},
+        Placeholder = "Select Pet Team...",
+        MultiSelect = false,
+        Flag = "BulkingPetTeam",
+        OnInit = function(api, optionsData)
+            local listTeamPet = PetTeam:GetAllPetTeams()
+            local currentOptionsSet = {}
+
+            for _, team in pairs(listTeamPet) do
+                table.insert(currentOptionsSet, {text = team, value = team})
             end
+            optionsData.updateOptions(currentOptionsSet)
+        end,
+        OnDropdownOpen = function(currentOptions, updateOptions)
+            local listTeamPet = PetTeam:GetAllPetTeams()
+            local currentOptionsSet = {}
+
+            for _, team in pairs(listTeamPet) do
+                table.insert(currentOptionsSet, {text = team, value = team})
+            end
+            updateOptions(currentOptionsSet)
         end
+    })
+
+    accordion:AddSelectBox({
+        Name = "Select Target Pets for Bulking",
+        Options = {"Loading..."},
+        Placeholder = "Select Pets...",
+        MultiSelect = true,
+        Flag = "BulkingPets",
+        OnInit = function(api, optionsData)
+            local pets = Pet:GetAllMyPets()
+            local currentOptionsSet = {}
+
+            for _, pet in pairs(pets) do
+                table.insert(currentOptionsSet, {text = Pet:SerializePet(pet), value = pet.ID})
+            end
+            optionsData.updateOptions(currentOptionsSet)
+        end,
+        OnDropdownOpen = function(currentOptions, updateOptions)
+            local pets = Pet:GetAllMyPets()
+            local currentOptionsSet = {}
+
+            for _, pet in pairs(pets) do
+                table.insert(currentOptionsSet, {text = Pet:SerializePet(pet), value = pet.ID})
+            end
+            updateOptions(currentOptionsSet)
+        end
+    })
+
+    accordion:AddNumberBox({
+        Name = "Bulk To Weight",
+        Placeholder = "Enter weight...",
+        Default = 1.0,
+        Min = 0.5,
+        Max = 20.0,
+        Increment = 0.1,
+        Decimals = 2,
+        Flag = "BulkingToWeight",
+    })
+
+    accordion:AddToggle({
+        Name = "Auto Bulk Pets",
+        Default = false,
+        Flag = "AutoBulkingPets"
     })
 end
 

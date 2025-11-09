@@ -60,18 +60,17 @@ function m:GetEggRegistry()
         return require(Core.ReplicatedStorage.Data.PetRegistry)
     end)
     
-    if not success then           
-        warn("Failed to get pet registry:", petRegistry)
+    if not success then
+        Window:ShowWarning("Egg Registry", "Failed to load Pet Registry module.")
         return {}
     end
     
     local eggList = petRegistry.PetEggs
     if not eggList then
-        warn("PetEggs is nil or not found")
+        Window:ShowWarning("Egg Registry", "PetEggs is nil or not found in Pet Registry module.")
         return {}
     end
 
-    -- Return the eggList as-is for PetEggRenderer compatibility
     return eggList
 end
 
@@ -106,13 +105,13 @@ function m:GetAllPlacedEggs()
     local MyFarm = Garden:GetMyFarm()
 
     if not MyFarm then
-        warn("My farm not found!")
+        Window:ShowWarning("Farm", "My farm not found!")
         return placedEggs
     end
     
     local objectsPhysical = MyFarm.Important.Objects_Physical
     if not objectsPhysical then
-        warn("Objects_Physical not found!")
+        Window:ShowWarning("Farm", "Objects_Physical not found!")
         return placedEggs
     end
     
@@ -135,19 +134,19 @@ function m:GetPlacedEggDetail(_eggID)
         return require(Core.ReplicatedStorage.Modules.DataService)
     end)
     if not success or not dataService then
-        warn("Failed to get DataService:", dataService)
+        Window:ShowWarning("Data Service", "Failed to load DataService module.")
         return nil
     end
 
     local allData = dataService:GetData()
     if not allData then
-        warn("No data available from DataService")
+        Window:ShowWarning("Data Service", "No data available from DataService")
         return nil
     end
     
     local saveSlots = allData.SaveSlots
     if not saveSlots then
-        warn("SaveSlots not found in data")
+        Window:ShowWarning("Data Service", "SaveSlots not found in data")
         return nil
     end
     
@@ -158,7 +157,7 @@ function m:GetPlacedEggDetail(_eggID)
     end
     
     -- Fallback method
-    warn("Falling back to ReplicationClass method")
+    Window:ShowWarning("Data Service", "Falling back to ReplicationClass method")
     local replicationClass = Core.ReplicatedStorage.Modules.ReplicationClass
     local dataStreamReplicator = replicationClass.new("DataStreamReplicator")
     dataStreamReplicator:YieldUntilData()
@@ -282,6 +281,7 @@ function m:HatchEgg()
             break
         end
 
+        Window:ShowInfo("Egg Hatching", "Waiting for eggs to be ready to hatch...")
         task.wait(math.min(maxTimeToHatch, 5)) -- Check every second
     end
 
@@ -293,9 +293,10 @@ function m:HatchEgg()
     local boostBeforeSpecialHatch = Window:GetConfigValue("AutoBoostBeforeSpecialHatch") or false
 
     if hatchPetTeam then
-        Pet:ChangeTeamPets(hatchPetTeam, "hatch")
+        Window:ShowInfo("Egg Hatching", "Changing to hatch pet team: " .. hatchPetTeam)
         task.wait(2)
         if boostBeforeHatch then
+            Window:ShowInfo("Egg Hatching", "Boosting all active pets before hatch")
             Pet:BoostAllActivePets()
         end
     end
@@ -310,6 +311,7 @@ function m:HatchEgg()
         local isSpecialPet = false
         for _, specialPet in ipairs(specialHatchingPets) do
             if petName == specialPet then
+                Window:ShowInfo("Egg Hatching", "Deferring hatching of special pet " .. petName .. " to special hatch team.")
                 table.insert(specialHatchingEgg, egg)
                 isSpecialPet = true
                 break
@@ -321,6 +323,7 @@ function m:HatchEgg()
         end
 
         if baseWeight > weightThresholdSpecialHatching then
+            Window:ShowInfo("Egg Hatching", "Deferring hatching of " .. petName .. " (Weight: " .. tostring(baseWeight) .. ") to special hatch team.")
             table.insert(specialHatchingEgg, egg)
             continue
         end
@@ -330,9 +333,11 @@ function m:HatchEgg()
     task.wait(1)
 
     if specialHatchPetTeam and #specialHatchingEgg > 0 then
+        Window:ShowInfo("Egg Hatching", "Changing to special hatch pet team: " .. specialHatchPetTeam)
         Pet:ChangeTeamPets(specialHatchPetTeam, "special_hatch")
         task.wait(2)
         if boostBeforeSpecialHatch then
+            Window:ShowInfo("Egg Hatching", "Boosting all active pets before special hatch")
             Pet:BoostAllActivePets()
         end
     end
@@ -361,9 +366,11 @@ function m:HatchEgg()
     if isAutoSellAfterHatch then
         Pet:SellPet()
     else
+        Window:ShowInfo("Egg Hatching", "Not selling pets after hatching, returning to core pet team...")
         Pet:ChangeTeamPets(corePetTeam, "core")
     end
 
+    Window:ShowInfo("Egg Hatching", "Completed hatching eggs, placing new eggs...")
     self:PlacingEgg()
 
     task.spawn(function()

@@ -105,7 +105,7 @@ FarmUI:init(window, CoreModule, PlayerModule, GardenModule, PlantModule)
 -- -- Pet
 PetTeamModule:Init(CoreModule, PlayerModule, window, petTeamsConfig, GardenModule)
 PetWebhook:Init(window, CoreModule, Discord)
-PetModule:Init(CoreModule, PlayerModule, window, GardenModule, PetTeamModule, PetWebhook)
+PetModule:Init(CoreModule, PlayerModule, window, GardenModule, PetTeamModule, PetWebhook, Rarity)
 EggModule:Init(CoreModule, PlayerModule, window, GardenModule, PetModule, PetWebhook)
 PetUI:Init(window, PetTeamModule, EggModule, PetModule, GardenModule, PlayerModule)
 
