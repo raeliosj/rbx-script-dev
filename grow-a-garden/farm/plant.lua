@@ -67,10 +67,13 @@ function m:GetPlantRegistry()
    -- Convert SeedData to UI format {text = ..., value = ...}
     local formattedSeeds = {}
     for seedName, seedData in pairs(seedRegistry) do
+        local plantTypes = self:FindPlantTypeByName(seedName)
+
         table.insert(formattedSeeds, {
             seed = seedData.SeedName or seedName,
             plant = seedName,
             rarity = seedData.SeedRarity or "Unknown",
+            types = plantTypes and table.concat(plantTypes, ", ") or "Unknown",
         })
     end
     
@@ -102,6 +105,34 @@ function m:FindPlantRegistryByName(plantName)
     return nil
 end
 
+function m:FindPlantRegistryByName(plantName)
+    local plants = self:GetPlantRegistry()
+    for _, plantData in pairs(plants) do
+        if plantData.plant == plantName then
+            return plantData
+        end
+    end
+
+    return nil
+end
+
+function m:FindPlantTypeByName(plantName)
+    local plantsData = require(Core.ReplicatedStorage.Modules.PlantTraitsData)
+    local plantTraits = plantsData.Traits or {}
+    local listPlantType = {}
+
+    for plantType, plants in pairs(plantTraits) do
+        for _, plant in ipairs(plants) do
+            if plant == plantName then
+                table.insert(listPlantType, plantType)
+                break
+            end
+        end
+    end
+
+    return listPlantType
+end
+
 function m:GetListSeedsAtInventory()
     local seedList = {}
     for _, tool in pairs(Player:GetAllTools()) do
@@ -110,12 +141,14 @@ function m:GetListSeedsAtInventory()
             local seedName = tool:GetAttribute("Seed") or ""
             local seedQty = tool:GetAttribute("Quantity") or 0
             local seedData = self:FindPlantRegistryByName(seedName)
-            
+            local plantTypes = self:FindPlantTypeByName(seedName)
+
             table.insert(seedList, {
                 seed = seedData and seedData.seed or "Unknown",
                 plant = seedData and seedData.plant or seedName,
                 quantity = seedQty,
                 rarity = seedData and seedData.rarity or "Unknown",
+                types = plantTypes and table.concat(plantTypes, ", ") or "Unknown",
             })
         end
     end
@@ -662,9 +695,31 @@ function m:GetListGardenPlants()
         end
     end
 
-    table.sort(plantList)
+    local formattedPlantList = {}
+    for plantName, count in pairs(plantList) do
+        local plantData = self:FindPlantRegistryByName(plantName)
+        table.insert(formattedPlantList, {
+            plant = plantName,
+            quantity = count,
+            types = plantData.types or "Unknown",
+            rarity = plantData and plantData.rarity or "Unknown",
+            seed = plantData and plantData.seed or "Unknown",
+        })
+    end
 
-    return plantList
+    -- Sort plants by rarity and then alphabetically
+    if #formattedPlantList > 0 then
+        table.sort(formattedPlantList, function(a, b)
+            local rarityA = Rarity.RarityOrder[a.rarity] or 99
+            local rarityB = Rarity.RarityOrder[b.rarity] or 99
+            if rarityA == rarityB then
+                return a.plant < b.plant
+            end
+            return rarityA < rarityB
+        end)
+    end
+
+    return formattedPlantList
 end
 
 function m:ShovelSelectedPlants()
