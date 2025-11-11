@@ -19,42 +19,59 @@ function m:Init(_window, _core, _plant, _player)
 end
 
 function m:GetQuestDetail()
+    local result = {
+        Name = "",
+        Amount = 0,
+        Mutations = "",
+        IsEligibleToSubmit = false,
+        NextRebirthSubmitTime = 0
+    }
+
     local UI = Core:GetPlayerGui():FindFirstChild("RebirthConfirmation")
     if not UI then
         warn("RebirthConfirmation UI not found")
-        return nil
+        return result
     end
 
     local frame = UI:FindFirstChild("Frame")
     if not frame then
         warn("Frame not found in RebirthConfirmation UI")
-        return nil
+        return result
     end
 
     local rebirthSubmitTime = frame.Frame:FindFirstChild("AscensionTimer")
+    result.IsEligibleToSubmit = not rebirthSubmitTime.Visible
+    if rebirthSubmitTime.Visible then
+        local text = rebirthSubmitTime.Text
+        local hours = tonumber(text:match("(%d+)h")) or 0
+        local minutes = tonumber(text:match("(%d+)m")) or 0
+        local seconds = tonumber(text:match("(%d+)s")) or 0
+        local totalSeconds = (hours * 3600) + (minutes * 60) + seconds
+        result.NextRebirthSubmitTime = tick() + totalSeconds
+    end
 
     local questDetail = frame.Display.RebirthDetails:FindFirstChild("RequiredItemTemplate")
     if not questDetail then
         warn("RequiredItemTemplate not found")
-        return nil
+        return result
     end
 
     local itemName = questDetail:FindFirstChild("ItemName")
     if not itemName then
         warn("ItemName not found")
-        return nil
+        return result
     end
 
     local itemAmount = questDetail:FindFirstChild("ItemAmount")
     if not itemAmount then
         warn("ItemAmount not found")
-        return nil
+        return result
     end
 
     local itemMutations = questDetail:FindFirstChild("ItemMutations")
     if not itemMutations then
         warn("ItemMutations not found")
-        return nil
+        return result
     end
 
     -- Parse text with color tags
@@ -64,27 +81,11 @@ function m:GetQuestDetail()
         return text:gsub('<font[^>]*>', ''):gsub('</font>', '')
     end
     
-    local parsedName = itemName.Text
-    local parsedAmount = tonumber(itemAmount.Text:match("%d+"))
-    local parsedMutations = parseText(itemMutations.Text)
-    local isEligibleToSubmit = not rebirthSubmitTime.Visible
-    local nextRebirthSubmitTime = 0
-    if rebirthSubmitTime.Visible then
-        local text = rebirthSubmitTime.Text
-        local hours = tonumber(text:match("(%d+)h")) or 0
-        local minutes = tonumber(text:match("(%d+)m")) or 0
-        local seconds = tonumber(text:match("(%d+)s")) or 0
-        local totalSeconds = (hours * 3600) + (minutes * 60) + seconds
-        nextRebirthSubmitTime = tick() + totalSeconds
-    end
+    result.Name = itemName.Text
+    result.Amount = tonumber(itemAmount.Text:match("%d+"))
+    result.Mutations = parseText(itemMutations.Text)
     
-    return {
-        Name = parsedName,
-        Amount = parsedAmount,
-        Mutations = parsedMutations,
-        IsEligibleToSubmit = isEligibleToSubmit,
-        NextRebirthSubmitTime = nextRebirthSubmitTime
-    }
+    return result
 end
 
 function m:IsQuestFruit(_fruit)
@@ -153,6 +154,20 @@ end
 function m:AutoSubmitQuest()
     local quest = self:GetQuestDetail()
     if not quest then
+        return
+    end
+
+    if not quest.IsEligibleToSubmit then
+        return
+    end
+
+    if quest.NextRebirthSubmitTime > tick() then
+        task.wait(quest.NextRebirthSubmitTime - tick() + 1)
+        return
+    end
+
+    if quest.Amount <= 0 and quest.Name == "" then
+        Core.ReplicatedStorage.GameEvents.BuyRebirth:FireServer()
         return
     end
 

@@ -426,13 +426,7 @@ function m:BoostPetsSection(tab)
             local pets = Pet:GetAllMyPets()
             local currentOptionsSet = {}
 
-            print("Total my pets:", #pets) -- Debug print
-
             for _, pet in pairs(pets) do
-                print("Pet ID:", pet.ID) -- Debug print
-                print("Type:", pet.Type, "Name:", pet.Name, "Age:", pet.Age, "Weight:", pet.BaseWeight, "Mutation:", pet.Mutation) -- Debug print
-                print("-----")
-
                 table.insert(currentOptionsSet, {text = Pet:SerializePet(pet), value = pet.ID})
             end
             updateOptions(currentOptionsSet)
