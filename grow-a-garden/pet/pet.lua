@@ -445,7 +445,14 @@ function m:GetAllOwnedPets()
 end
 
 function m:GetPetDetail(_petID)
-    local petMutationRegistry = require(Core.ReplicatedStorage.Data.PetRegistry.PetMutationRegistry)
+    local success, petMutationRegistry = pcall(function()
+        return require(Core.ReplicatedStorage.Data.PetRegistry.PetMutationRegistry)
+    end)
+    
+    if not success then
+        Window:ShowWarning("Pet Details", "Failed to load PetMutationRegistry: " .. tostring(petMutationRegistry))
+        petMutationRegistry = nil
+    end
 
     local petData = self:GetPetData(_petID)
     if not petData then
@@ -470,8 +477,12 @@ function m:GetPetDetail(_petID)
     end
 
     local mutationType = petDetail.MutationType or ""
+    if mutationType == "Gold" then
+        mutationType = "Golden"
+    end
     local mutation = ""
-        if petMutationRegistry and petMutationRegistry.EnumToPetMutation then
+    
+    if petMutationRegistry and petMutationRegistry.EnumToPetMutation and mutationType ~= "" then
         mutation = petMutationRegistry.EnumToPetMutation[mutationType] or ""
     end
 
@@ -800,17 +811,20 @@ function m:CleansingMutation(_petID)
 end
 
 function m:AutoNightmareMutation()
-    if not Window:GetConfigValue("AutoNightmareMutation") then
+    local autoNightmare = Window:GetConfigValue("AutoNightmareMutation") or false
+    local nightMarePetTeam = Window:GetConfigValue("NightmareMutationPetTeam") or nil
+    local petIDs = Window:GetConfigValue("NightmareMutationPets") or {}
+    
+    if not autoNightmare then
+        warn("Auto Nightmare Mutation is disabled.")
         return
     end
 
-    local nightMarePetTeam = Window:GetConfigValue("NightmareMutationPetTeam") or nil
     if not nightMarePetTeam then
         Window:ShowWarning("Nightmare Mutation", "No Nightmare Mutation Pet Team selected.")
         return
     end
 
-    local petIDs = Window:GetConfigValue("NightmareMutationPets") or {}
     if #petIDs == 0 then
         Window:ShowWarning("Nightmare Mutation","No pets selected for Nightmare Mutation.")
         return
@@ -827,19 +841,17 @@ function m:AutoNightmareMutation()
         end
 
         if not petDetail.IsActive then
-            print("Pet is not active, skipping Nightmare Mutation:", petDetail.Name)
             continue
         end
 
         isNoActivePet = false
         
         if petDetail.Mutation == "" then
-            print("Pet has no mutation, skipping Cleansing Mutation:", petDetail.Name)
             continue
         end
 
         if petDetail.Mutation == "Nightmare" then
-            Window:ShowWarning("Nightmare Mutation","Pet already has Nightmare mutation :", petDetail.Name)
+            Window:ShowWarning("Nightmare Mutation", "Pet already has Nightmare mutation :" ..petDetail.Name)
             task.spawn(function() 
                 Webhook:NightmareMutation(petDetail.Type, #petIDs - 1)
             end)
@@ -851,7 +863,7 @@ function m:AutoNightmareMutation()
         Window:ShowInfo("Nightmare Mutation","Starting Cleansing Mutation for pet: " .. petDetail.Name)
         local success = self:CleansingMutation(petID)
         if not success then
-            Window:ShowWarning("Nightmare Mutation","Failed to cleanse mutation for pet:", petDetail.Name)
+            Window:ShowWarning("Nightmare Mutation","Failed to cleanse mutation for pet: " .. petDetail.Name)
             continue
         end
     end
