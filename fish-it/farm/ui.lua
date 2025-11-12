@@ -33,25 +33,45 @@ function m:FishingSection(tab)
     })
 
     accordion:AddNumberBox({
-        Name = "Delay between casts ⛵",
-        Placeholder = "Delay between casts...",
-        Default = 1.30,
+        Name = "Cancel Delay",
+        Placeholder = "Cancel Delay...",
+        Default = 1.3,
         Min = 0.1,
         Max = 20.0,
-        Increment = 0.01,
-        Decimals = 2,
-        Flag = "AutoInstantCatchDelay",
+        Increment = 0.001,
+        Decimals = 3,
+        Flag = "CancelDelay",
     })
 
     accordion:AddNumberBox({
-        Name = "Delay per click power ⚡",
-        Placeholder = "Delay per click power...",
-        Default = 0.25,
+        Name = "Complete Delay",
+        Placeholder = "Complete Delay...",
+        Default = 1.7,
         Min = 0.1,
-        Max = 1.0,
-        Increment = 0.01,
-        Decimals = 2,
-        Flag = "AutoInstantCatchDelayPerClickPower",
+        Max = 20.0,
+        Increment = 0.001,
+        Decimals = 3,
+        Flag = "CompleteDelay",
+    })
+    
+    accordion:AddSeparator()
+
+    accordion:AddSelectBox({
+        Name = "Charge Fishing Method ⚡",
+        Options = {"Toggle Auto", "Use Delay", "None"},
+        Default = "Auto Charge",
+        Placeholder = "Select Charge Fishing Method",
+        MultiSelect = false,
+        Flag = "ChargeFishingMethod",
+    })
+
+    accordion:AddSelectBox({
+        Name = "Complete Fishing Method ✅",
+        Options = {"Looping", "Use Delay"},
+        Default = "Use Delay",
+        Placeholder = "Select Complete Fishing Method",
+        MultiSelect = false,
+        Flag = "CompleteFishingMethod",
     })
 
     accordion:AddSelectBox({
@@ -76,12 +96,6 @@ function m:FishingSection(tab)
                 Fishing:StopAutoFishing()
             end
         end
-    })
-
-    accordion:AddToggle({
-        Name = "Auto Teleport to Fishing Spot",
-        Default = false,
-        Flag = "AutoTeleportToFishingSpot",
     })
 
     accordion:AddButton({

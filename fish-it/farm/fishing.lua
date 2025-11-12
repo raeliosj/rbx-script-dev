@@ -20,8 +20,6 @@ local DataReplion
 local IsFishingActive = false
 local LastFishingActivityTime = tick()
 
-local CurrentMinigameData = nil
-
 function m:Init(_window, _core, _player, _spot)
     Window = _window
     Core = _core
@@ -41,8 +39,6 @@ function m:Init(_window, _core, _player, _spot)
     CancelFishingInputsRemote = Net:RemoteFunction("CancelFishingInputs")
     EquipToolFromHotbar = Net:RemoteEvent("EquipToolFromHotbar")
     
-    self:CreateConnections()
-
     Core:MakeLoop(
         function()
             return Window:GetConfigValue("AutoFishing")
@@ -73,6 +69,10 @@ function m:CreateConnections()
     end
 
     TextEffectConnection = Net:RemoteEvent("ReplicateTextEffect").OnClientEvent:Connect(function(data)
+        if Window:GetConfigValue("CompleteFishingMethod") == "Looping" then
+            return
+        end
+        
         local localPlayerCharacter = Core:GetCharacter()
         if not localPlayerCharacter then return end
 
@@ -83,34 +83,19 @@ function m:CreateConnections()
             return
         end
 
-        if not CurrentMinigameData then
-            self:SetIsFishingActive(false)
-            warn("No current minigame data available for text effect.")
-            return
-        end
+        local completeRetry = math.max(Window:GetConfigValue("CompleteDelay") or 1.7, 0.1)
+        local countDelay = 0
 
-        local delayClick = math.max(Window:GetConfigValue("AutoInstantCatchDelayPerClickPower") or 0.25, 0.1)
-        local clickProgress = 0
-        local currentFishingPower = CurrentMinigameData.FishingClickPower or 0.1
-        
-        while clickProgress < 1 do
+        while countDelay <= completeRetry do
+            task.wait(0.1)
+            countDelay = countDelay + 0.1
             self:SetIsFishingActive(true)
-            clickProgress = clickProgress + currentFishingPower
-            
-            task.wait(delayClick)
         end
 
-        pcall(function()
-            FishingCompletedEvent:FireServer()
-        end)
-        
-        if Window:GetConfigValue("AutoTeleportToFishingSpot") then
-            task.wait(0.2)
-        else
-            task.wait(0.05)
-        end
+        FishingCompletedEvent:FireServer()
 
         if not IsFishingActive then
+            info("Auto Fishing is not active.")
             return
         end
 
@@ -163,31 +148,21 @@ function m:SetServerAutoFishing(enabled)
     end
 end
 
-function m:CreateFishingLoop()   
-    if Window:GetConfigValue("AutoTeleportToFishingSpot") then
-        currentFishingPosition = Player:GetPosition()
-        local selectedSpots = Window:GetConfigValue("TeleportToFishingSpot")
-        if not selectedSpots then
-            return
-        end
-
-        local spotData = Spot:FindSpotByName(selectedSpots)
-        if not spotData then
-            return
-        end
-        Player:TeleportToPosition(spotData.Position)
-    end
-
+function m:CreateFishingLoop()
     local totalRetry = 0
     local raycastResult = self:GetRayCastPosition()
-    local fishingPosition = raycastResult and raycastResult.Position and raycastResult.Position.Y or 0
-
+    local fishingPosition = raycastResult and raycastResult.Position and raycastResult.Position.Y or -31
 
     while Window:GetConfigValue("AutoFishing") and Core.IsWindowOpen do
         self:SetIsFishingActive(true)
         
-        self:SetServerAutoFishing(true)
-        CancelFishingInputsRemote:InvokeServer()
+        if Window:GetConfigValue("ChargeFishingMethod") == "Toggle Auto" then
+            self:SetServerAutoFishing(true)
+        end
+
+        coroutine.wrap(function()
+            CancelFishingInputsRemote:InvokeServer()
+        end)()
         
         if totalRetry >= 10 then
             Window:ShowError("Fishing", "Max retries reached for fishing.")
@@ -198,16 +173,22 @@ function m:CreateFishingLoop()
         local chargeTime = workspace:GetServerTimeNow()
         local success = ChargeFishingRodRemote:InvokeServer(chargeTime)
         if not success then
-            warn(string.format("Retrying... %s", tostring(totalRetry)), "Failed to charge fishing rod")
             totalRetry = totalRetry + 1
             continue
         end
 
-        local castPower = 0.5
-        local startTime = workspace:GetServerTimeNow()
-        local success, minigameResult = RequestFishingMinigameStartedRemote:InvokeServer(fishingPosition, castPower, startTime)
+        if Window:GetConfigValue("ChargeFishingMethod") == "Use Delay" then
+            task.wait(0.2)
+        end
 
-        self:SetServerAutoFishing(false)
+        local startTime = workspace:GetServerTimeNow()
+        local castPower = Constants:GetPower(chargeTime - startTime)
+        local success, minigameResult = RequestFishingMinigameStartedRemote:InvokeServer(fishingPosition, castPower, startTime)
+        
+        if Window:GetConfigValue("ChargeFishingMethod") == "Toggle Auto" then
+            self:SetServerAutoFishing(false)
+        end
+
         if minigameResult == "Already fishing!" then
             break
         end
@@ -219,26 +200,10 @@ function m:CreateFishingLoop()
         
         if not success then
             totalRetry = totalRetry + 1
-            warn(string.format("Retrying... %s", tostring(totalRetry)), string.format("Failed to start fishing minigame, %s", tostring(minigameResult)))
             continue
         end
         
-        if type(minigameResult) == "table" and minigameResult.FishingClickPower then
-            CurrentMinigameData = minigameResult
-        end
-        
         break
-    end
-
-    if Window:GetConfigValue("AutoTeleportToFishingSpot") then
-        local configLockPosition = Window:GetConfigValue("LockPlayerPosition")
-        local lockAtPosition = Core:StringToCFrame(configLockPosition)
-        if not lockAtPosition then
-            Window:ShowWarning("Fishing", "Invalid lock position for teleporting to fishing spot.")
-            return
-        end
-
-        Player:TeleportToPosition(lockAtPosition)
     end
 end
 
@@ -254,12 +219,11 @@ function m:StartAutoFastFishing()
     end
 
     if self:GetIsFishingActive() then
-        warn("You must not be actively fishing to use Fast Catch.")
+        info("Auto Fast Fishing is already active.")
         return
     end
 
-    self:CreateConnections()
-    self:FishingUI(false)
+    self:SetIsFishingActive(true)
 
     local coroutineFishingLoop = coroutine.create(function()
         self:CreateFishingLoop()
@@ -269,31 +233,9 @@ function m:StartAutoFastFishing()
 end
 
 function m:StartAutoInstantFishing()
-    if not Window:GetConfigValue("AutoFishing") then
-        Window:ShowWarning("Fishing", "Auto Fishing has been disabled.")
-        return
-    end
-
-    if Window:GetConfigValue("AutoFishingMethod") ~= "Instant" then
-        Window:ShowWarning("Fishing", "Invalid fishing method selected.")
-        return
-    end
-
-    if self:GetIsFishingActive() then
-        warn("You must not be actively fishing to use Instant Catch.")
-        return
-    end
-
-    self:FishingUI(false)
-    self:CreateConnections()
-
-    if DataReplion:GetExpect("EquippedType") ~= "Fishing Rods" then
-        EquipToolFromHotbar:FireServer(1)
-        return
-    end
-
-    local raycastResult = self:GetRayCastPosition()
-    while Window:GetConfigValue("AutoFishing") and Core.IsWindowOpen and Window:GetConfigValue("AutoFishingMethod") == "Instant" do
+    while Window:GetConfigValue("AutoFishing") and
+        Core.IsWindowOpen and
+        Window:GetConfigValue("AutoFishingMethod") == "Instant" do
         self:SetIsFishingActive(true)
 
         local coroutineFishingLoop = coroutine.create(function()
@@ -301,14 +243,44 @@ function m:StartAutoInstantFishing()
         end)
         coroutine.resume(coroutineFishingLoop)
 
-        local delayRetry = math.max(Window:GetConfigValue("AutoInstantCatchDelay") or 1.70, 0.1)
+        local delayRetry = math.max(Window:GetConfigValue("CancelDelay") or 1.7, 0.1)
         task.wait(delayRetry)
     end
 
     self:StopAutoFishing()
 end
 
+function m:StartAutoComplete()
+    while Window:GetConfigValue("AutoFishing") and 
+        Core.IsWindowOpen and
+        Window:GetConfigValue("CompleteFishingMethod") == "Looping" do
+        
+        FishingCompletedEvent:FireServer()
+
+        local delayRetry = math.max(Window:GetConfigValue("CompleteDelay") or 1.70, 0.1)
+        task.wait(delayRetry)
+    end
+end
+
 function m:StartAutoFishing()
+    if self:GetIsFishingActive() then
+        return
+    end
+
+    self:FishingUI(false)
+    
+    if Window:GetConfigValue("CompleteFishingMethod") == "Looping" then
+        task.spawn(function()
+            self:StartAutoComplete()
+        end)
+    else
+        self:CreateConnections()
+    end
+
+    if DataReplion:GetExpect("EquippedType") ~= "Fishing Rods" then
+        EquipToolFromHotbar:FireServer(1)
+    end
+
     if Window:GetConfigValue("AutoFishingMethod") == "Fast" then
         self:StartAutoFastFishing()
     elseif Window:GetConfigValue("AutoFishingMethod") == "Instant" then
@@ -323,13 +295,13 @@ function m:StopAutoFishing()
     self:SetIsFishingActive(false)
 
     CancelFishingInputsRemote:InvokeServer()
+    Net:RemoteEvent("UnequipToolFromHotbar"):FireServer()
 
     if TextEffectConnection then
         TextEffectConnection:Disconnect()
         TextEffectConnection = nil
     end
 
-    CurrentMinigameData = nil
     self:FishingUI(true)
 end
 
