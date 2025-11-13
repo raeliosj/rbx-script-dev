@@ -31,6 +31,22 @@ function m:SafariQuestSection(tab)
         return string.format("Current Quest Plant Type: %s", Quest:GetQuestPlantType())
     end)
 
+    accordion:AddNumberBox({
+        Name = "Harvest Delay (seconds)",
+        Default = 0.15,
+        Min = 0.01,
+        Max = 5,
+        Increment = 0.01,
+        Decimals = 2,
+        Flag = "SafariQuestHarvestDelay",
+    })
+
+    accordion:AddToggle({
+        Name = "Instant Harvest",
+        Default = false,
+        Flag = "InstantSafariQuestHarvest",
+    })
+
     accordion:AddToggle({
         Name = "Auto Harvest Safari Quest Plants",
         Default = false,
