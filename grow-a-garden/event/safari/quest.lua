@@ -124,7 +124,10 @@ function m:StartAutoHarvest()
         end
         
         Plant:HarvestFruit(plantModel)
-        task.wait(0.15)
+        if not Window:GetConfigValue("InstantSafariQuestHarvest") then
+            local harvestDelay = Window:GetConfigValue("SafariQuestHarvestDelay") or 0.15
+            task.wait(harvestDelay)
+        end
     end
 end
 
