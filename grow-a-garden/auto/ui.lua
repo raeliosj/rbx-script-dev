@@ -63,7 +63,7 @@ function m:CraftingSeedSection(tab)
         Placeholder = "Select Crafting Item",
         Flag = "CraftingSeedItem",
         OnInit =  function(api, optionsData)
-            local craftingItems = Crafting:GetAllCraftingItems(workspace.CraftingTables.EventCraftingWorkBench)
+            local craftingItems = Crafting:GetAllCraftingItems(workspace.CraftingTables.SeedEventCraftingWorkBench)
 
             optionsData.updateOptions(craftingItems)
         end
