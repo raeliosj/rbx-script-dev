@@ -48,6 +48,10 @@ local SafariQuestModule = require('event/safari/quest.lua')
 local SafariShopModule = require('event/safari/shop.lua')
 local SafariUI = require('event/safari/ui.lua')
 
+local SmithQuestModule = require('event/smith/quest.lua')
+local SmithCraftingModule = require('event/smith/crafting.lua')
+local SmithUI = require('event/smith/ui.lua')
+
 -- Notification module
 local NotificationUI = require('notification/ui.lua')
 local playerName = CoreModule.LocalPlayer.Name or "Unknown"
@@ -137,6 +141,10 @@ InventoryUI:Init(window, InventoryModule, PetModule)
 SafariQuestModule:Init(window, CoreModule, PlantModule)
 SafariShopModule:Init(window, CoreModule)
 SafariUI:Init(window, CoreModule, SafariQuestModule, SafariShopModule)
+
+SmithQuestModule:Init(window, CoreModule)
+SmithCraftingModule:Init(window, CoreModule, CraftingModule)
+SmithUI:Init(window, CoreModule, SmithQuestModule, SmithCraftingModule, PlantModule, PetModule)
 
 -- Server
 ServerUI:Init(window, CoreModule, PlayerModule, GardenModule)

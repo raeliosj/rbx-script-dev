@@ -100,7 +100,7 @@ function m:StartAutoBuyDailyDeals()
         
         for i=1, stock do
             Core.ReplicatedStorage.GameEvents.BuyDailySeedShopStock:FireServer(itemName)
-             task.wait(0.15)
+            task.wait(0.15)
         end
     end
 end
