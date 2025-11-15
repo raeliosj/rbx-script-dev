@@ -66,7 +66,7 @@ end
 local function main()
     local fileName = getFileNameForGame()
     if not fileName then
-        notify("This game is not supported by EzHub.")
+        notify("This game is not supported by RazuHUB.")
         return
     end
 
@@ -81,7 +81,7 @@ local function main()
         
         return
     end
-    local url = string.format("https://github.com/%s/%s/releases/latest/download/%s", OWNER, REPO, fileName)
+    local url = string.format("https://github.com/raeliosj/rbx-script-dev/releases/latest/download/fish-it", OWNER, REPO, fileName)
 
     notify("Loaded " .. fileName .. " from release: " .. release.tag_name or "unknown")
 
