@@ -69,7 +69,7 @@ function m:StartBuySeasonPassItems()
 
         for i=1, stock do
             Core.ReplicatedStorage.GameEvents.SeasonPass.BuySeasonPassStock:FireServer(itemName)
-             task.wait(0.15)
+            task.wait(0.15)
         end
     end
 end

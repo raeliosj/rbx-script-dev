@@ -668,7 +668,9 @@ function m:SeasonPassShopSection(tab)
             end)
 
             for _, data in pairs(sortedList) do
-                table.insert(itemNames, {text= "[" .. data.Rarity .. "] " .. data._name , value=data._name})
+                local rarity = data.Rarity or "Unknown"
+                local name = data._name or "Unnamed"
+                table.insert(itemNames, {text= "[" .. rarity .. "] " .. name, value=name})
             end
 
             optionsData.updateOptions(itemNames)
