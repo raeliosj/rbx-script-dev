@@ -22,7 +22,7 @@ local function notify(text)
 end
 
 local function getLatestRelease()
-	local url = string.format("https://api.github.com/repos/%s/%s/releases/latest", OWNER, REPO)
+	local url = string.format("https://api.github.com/repos/raeliosj/rbx-script-dev/releases/latest", OWNER, REPO)
 
     local success, response = pcall(function()
         return requestFunction({
