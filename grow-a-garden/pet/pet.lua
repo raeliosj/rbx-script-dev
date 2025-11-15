@@ -1057,4 +1057,50 @@ function m:StartAutoBulking()
     self:EquipPet(petIDs[1])
 end
 
+function m:GetMachineAgeBreakerData()
+    local DataService = require(Core.ReplicatedStorage.Modules.DataService)
+
+    local data = DataService:GetData()
+    if not data then
+        Window:ShowWarning("Machine Age Breaker", "Failed to get player data for Machine Age Breaker.")
+        return nil
+    end
+
+    return data.PetAgeBreakMachine or nil
+end
+
+function m:GetMachineAgeBreakerStatus()
+    local machineData = self:GetMachineAgeBreakerData()
+    if not machineData then
+        return "Not Available"
+    end
+
+    local TimeHelper = require(Core.ReplicatedStorage.Modules.TimeHelper)
+
+    if machineData.IsRunning or machineData.TimeLeft > 0 then
+        return TimeHelper:GenerateColonFormatFromTime(machineData.TimeLeft)
+    elseif machineData.PetReady then
+        return "Claim Pet"
+    elseif machineData.SubmittedPet then
+        return "Select Dupes"
+    elseif machineData.PetReady then
+        return "READY"
+    else
+        return "Submit Pet"
+    end
+end
+
+function m:AutoUseMachineAgeBreaker()
+    local autoUseMachine = Window:GetConfigValue("AutoUseMachineAgeBreaker") or false
+    if not autoUseMachine then
+        return
+    end
+
+    local gameEvents = Core.ReplicatedStorage.GameEvents
+    local submit = gameEvents.PetAgeLimitBreak_SubmitHeld
+    local claim = gameEvents.PetAgeLimitBreak_Claim
+
+    -- TODO: Implement the logic to interact with the machine based on its status
+end
+
 return m

@@ -30,6 +30,7 @@ function m:CreatePetTab()
     self:AutoNightmareMutationSection(tab)
     self:AutoLevelingSection(tab)
     self:AutoBulkingSection(tab)
+    self:AgeBreakerSection(tab)
 end
 
 function m:AddPetTeamsSection(tab)
@@ -680,6 +681,100 @@ function m:AutoBulkingSection(tab)
         Default = false,
         Flag = "AutoBulkingPets"
     })
+end
+
+function m:AgeBreakerSection(tab)
+    local accordion = tab:AddAccordion({
+        Title = "Age Breaker",
+        Icon = "⏳",
+        Expanded = false,
+    })
+
+    accordion:AddLabel(function()
+        local currentStatus = Pet:GetMachineAgeBreakerStatus()
+        return string.format("Age Breaker Status: %s", currentStatus or "error")
+    end)
+
+    accordion:AddSelectBox({
+        Name = "Select Pet Team for Age Breaker",
+        Options = {"Loading..."},
+        Placeholder = "Select Pet Team...",
+        MultiSelect = false,
+        Flag = "AgeBreakerPetTeam",
+        OnInit = function(api, optionsData)
+            local listTeamPet = PetTeam:GetAllPetTeams()
+            local currentOptionsSet = {}
+
+            for _, team in pairs(listTeamPet) do
+                table.insert(currentOptionsSet, {text = team, value = team})
+            end
+            optionsData.updateOptions(currentOptionsSet)
+        end,
+        OnDropdownOpen = function(currentOptions, updateOptions)
+            local listTeamPet = PetTeam:GetAllPetTeams()
+            local currentOptionsSet = {}
+
+            for _, team in pairs(listTeamPet) do
+                table.insert(currentOptionsSet, {text = team, value = team})
+            end
+            updateOptions(currentOptionsSet)
+        end
+    })
+
+    accordion:AddSelectBox({
+        Name = "Select Target Pets for Age Breaker",
+        Options = {"Loading..."},
+        Placeholder = "Select Pets...",
+        MultiSelect = true,
+        Flag = "AgeBreakerTargetPets",
+        OnInit = function(api, optionsData)
+            local pets = Pet:GetAllMyPets()
+            local currentOptionsSet = {}
+
+            for _, pet in pairs(pets) do
+                table.insert(currentOptionsSet, {text = Pet:SerializePet(pet), value = pet.ID})
+            end
+            optionsData.updateOptions(currentOptionsSet)
+        end,
+        OnDropdownOpen = function(currentOptions, updateOptions)
+            local pets = Pet:GetAllMyPets()
+            local currentOptionsSet = {}
+
+            for _, pet in pairs(pets) do
+                table.insert(currentOptionsSet, {text = Pet:SerializePet(pet), value = pet.ID})
+            end
+            updateOptions(currentOptionsSet)
+        end
+    })
+
+    accordion:AddSelectBox({
+        Name = "Select Sacrifice Pets for Age Breaker",
+        Options = {"Loading..."},
+        Placeholder = "Select Pets...",
+        MultiSelect = true,
+        Flag = "AgeBreakerSacrificePets",
+        OnInit = function(api, optionsData)
+            local pets = Pet:GetAllMyPets()
+            local currentOptionsSet = {}
+
+            for _, pet in pairs(pets) do
+                table.insert(currentOptionsSet, {text = Pet:SerializePet(pet), value = pet.ID})
+            end
+            optionsData.updateOptions(currentOptionsSet)
+        end,
+        OnDropdownOpen = function(currentOptions, updateOptions)
+            local pets = Pet:GetAllMyPets()
+            local currentOptionsSet = {}
+
+            for _, pet in pairs(pets) do
+                table.insert(currentOptionsSet, {text = Pet:SerializePet(pet), value = pet.ID})
+            end
+            updateOptions(currentOptionsSet)
+        end
+    })
+
+    accordion:AddLabel("Coming Soon...")
+    --TODO: Add Toggle for Auto Age Breaker
 end
 
 return m
