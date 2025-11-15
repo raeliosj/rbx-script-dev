@@ -3,7 +3,7 @@ local EzUI = loadstring(game:HttpGet('https://raw.githubusercontent.com/alfin-ef
 local Player = loadstring(game:HttpGet('https://raw.githubusercontent.com/alfin-efendy/rbx-script-dev/refs/heads/main/module/player.lua'))()
 
 local window = EzUI.CreateWindow({
-	Name = "My App", -- Name of the window
+	Name = "RazuHUB", -- Name of the window
 	Width = 700, -- Optional: Override default calculated width
 	Height = 400, -- Optional: Override default calculated height
 	Opacity = 0.9,  -- 0.1 to 1.0 (10% to 100%)
@@ -11,7 +11,7 @@ local window = EzUI.CreateWindow({
 	AutoShow = false, -- Start hidden, can be shown later
 	ConfigurationSaving = {
 		Enabled = true,
-		FolderName = "My App", -- Name of the window -- Custom folder name
+		FolderName = "RazuHUB", -- Name of the window -- Custom folder name
 		FileName = "settings", -- Custom file name
 		AutoLoad = true, -- Auto-load on window creation
 		AutoSave = true, -- Auto-save on window close
