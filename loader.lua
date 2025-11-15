@@ -1,6 +1,6 @@
 repeat wait() until game:IsLoaded() and game:FindFirstChild("CoreGui") and pcall(function() return game.CoreGui end)
 
-local OWNER = "alfin-efendy"
+local OWNER = "raeliosj"
 local REPO = "rbx-script-dev"
 
 local HttpService = game:GetService("HttpService")
@@ -14,7 +14,7 @@ local function notify(text)
     game.StarterGui:SetCore(
         "SendNotification",
         {
-            Title = "EzHub",
+            Title = "RazuHUB",
             Text = text,
             Duration = 5
         }
