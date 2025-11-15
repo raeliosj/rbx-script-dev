@@ -44,10 +44,6 @@ local InventoryModule = require('inventory/inventory.lua')
 local InventoryUI = require('inventory/ui.lua')
 
 -- Event modules
-local SafariQuestModule = require('event/safari/quest.lua')
-local SafariShopModule = require('event/safari/shop.lua')
-local SafariUI = require('event/safari/ui.lua')
-
 local SmithQuestModule = require('event/smith/quest.lua')
 local SmithCraftingModule = require('event/smith/crafting.lua')
 local SmithUI = require('event/smith/ui.lua')
@@ -138,10 +134,6 @@ InventoryModule:Init(CoreModule, PlayerModule, window)
 InventoryUI:Init(window, InventoryModule, PetModule)
 
 -- Event
-SafariQuestModule:Init(window, CoreModule, PlantModule)
-SafariShopModule:Init(window, CoreModule)
-SafariUI:Init(window, CoreModule, SafariQuestModule, SafariShopModule)
-
 SmithQuestModule:Init(window, CoreModule)
 SmithCraftingModule:Init(window, CoreModule, CraftingModule)
 SmithUI:Init(window, CoreModule, SmithQuestModule, SmithCraftingModule, PlantModule, PetModule)
