@@ -1,91 +1,83 @@
+-- Memastikan game dan lingkungan CoreGui siap
 repeat wait() until game:IsLoaded() and game:FindFirstChild("CoreGui") and pcall(function() return game.CoreGui end)
 
+-- Konfigurasi Repositori GitHub
 local OWNER = "raeliosj"
 local REPO = "rbx-script-dev"
+local BRANCH = "main" 
 
 local HttpService = game:GetService("HttpService")
-local requestFunction = request or
-                        (syn and syn.request) or
-                        (http and http.request) or
-                        (fluxus and fluxus.request) or
-                        http_request
 
+-- Fungsi Notifikasi RazuHUB
 local function notify(text)
-    game.StarterGui:SetCore(
-        "SendNotification",
-        {
-            Title = "RazuHUB",
-            Text = text,
-            Duration = 5
-        }
-    )
-end
-
-local function getLatestRelease()
-	local url = string.format("https://api.github.com/repos/raeliosj/rbx-script-dev/releases/latest", OWNER, REPO)
-
-    local success, response = pcall(function()
-        return requestFunction({
-            Url = url,
-            Method = 'GET',
-            Headers = {
-                ["User-Agent"] = "RobloxScript",
-                ["X-GitHub-Api-Version"] = "2022-11-28",
-                ["Host"] = "api.github.com",
-                ["Accept"] = "application/vnd.github+json"
+    -- Memastikan ada CoreGui sebelum mencoba SendNotification
+    if game.StarterGui and game.StarterGui:FindFirstChild("CoreGui") then
+        game.StarterGui:SetCore(
+            "SendNotification",
+            {
+                Title = "RaeliosHUB",
+                Text = text,
+                Duration = 5
             }
-        })
-    end)
-
-    if not success then
-        notify("Failed to fetch latest release: " .. tostring(response))
-        return nil
+        )
     end
-
-	local body = response.Body or response.body or response.data
-    if not body then
-        notify("Failed to fetch latest release: Empty response body")
-        return nil
-    end
-
-    return HttpService:JSONDecode(body)
 end
 
+-- Fungsi Pemetaan Game ke Nama File (Berdasarkan PlaceId)
 local function getFileNameForGame()
     local games = {
-        [126884695634066] = "gag.lua", -- Grow a Garden
-        [91867617264223] = "gag.lua", -- Grow a Garden 1
-        [124977557560410] = "gag.lua", -- Grow a Garden 3
-        [121864768012064] = "fish-it.lua", -- Fish It
+        [126884695634066] = "gag.lua",        -- Grow a Garden
+        [91867617264223] = "gag.lua",         -- Grow a Garden 1
+        [124977557560410] = "gag.lua",        -- Grow a Garden 3
+        [121864768012064] = "fish-it.lua",    -- Fish It
     }
-    local fileName = games[game.PlaceId]
-
-    return fileName
+    return games[game.PlaceId]
 end
 
+-- Fungsi Utama untuk Mengunduh dan Menjalankan Skrip
 local function main()
     local fileName = getFileNameForGame()
+    
     if not fileName then
-        notify("This game is not supported by RazuHUB.")
+        notify("Game ini tidak didukung oleh RaeliosHUB.")
         return
     end
 
-    local release = getLatestRelease()
+    -- Mendapatkan nama folder (misalnya: 'fish-it' dari 'fish-it.lua')
+    local FOLDER_NAME = fileName:match("([%w-]+)%.lua") 
+    
+    -- Membangun URL RAW GitHub (https://raw.githubusercontent.com/...)
+    local RAW_URL = string.format(
+        "https://raw.githubusercontent.com/%s/%s/%s/%s/%s", 
+        OWNER, 
+        REPO, 
+        BRANCH, 
+        FOLDER_NAME,
+        fileName
+    )
 
-    if not release or not release.assets then
-        for key, value in pairs(release) do
-            print(key, value)
-        end
+    notify("Loaded: " .. fileName .. " ...")
 
-        notify("Failed to get latest release information.")
-        
+    -- 1. Proses Pengunduhan (Menggunakan pcall untuk menghindari crash)
+    local success, content = pcall(function()
+        return game:HttpGet(RAW_URL)
+    end)
+
+    if not success or not content or content == "" then
+        notify("Failed Load Script! " .. tostring(content))
         return
     end
-    local url = string.format("https://github.com/raeliosj/rbx-script-dev/releases/latest/download/fish-it", OWNER, REPO, fileName)
-
-    notify("Loaded " .. fileName .. " from release: " .. release.tag_name or "unknown")
-
-    loadstring(game:HttpGet(url))()
+    
+    -- 2. Proses Eksekusi (Menggunakan loadstring dan pcall)
+    local executionSuccess, executionResult = pcall(function()
+        return loadstring(content)()
+    end)
+    
+    if executionSuccess then
+        notify(fileName .. " Succes Loaded Script!")
+    else
+        notify("Execute Scrpit " .. fileName .. " Failed! " .. tostring(executionResult))
+    end
 end
 
 main()
