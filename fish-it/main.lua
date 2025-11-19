@@ -44,7 +44,7 @@ local configFolder = string.format("EzHub/%s/EzFish-It", playerName)
 
 -- Initialize window
 local window = EzUI:CreateNew({
-    Title = "EzFish-It",
+    Title = "Raelios Free",
     Width = 700,
     Height = 400,
     Opacity = 0.9,
