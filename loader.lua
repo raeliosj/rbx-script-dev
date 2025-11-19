@@ -85,7 +85,7 @@ local function main()
 
     notify("Loaded " .. fileName .. " from release: " .. release.tag_name or "unknown")
 
-    loadstring(game:HttpGet(https://github.com/raeliosj/rbx-script-dev/tree/main/fish-it))()
+    loadstring(game:HttpGet(url))()
 end
 
 main()
