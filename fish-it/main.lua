@@ -1,7 +1,7 @@
 repeat wait() until game:IsLoaded() and game:FindFirstChild("CoreGui") and pcall(function() return game.CoreGui end)
 
 -- Main entry point
-local EzUI = loadstring(game:HttpGet('https://github.com/raeliosj/ez-rbx-ui/releases/latest/download/ez-rbx-ui.lua'))()
+local EzUI = loadstring(game:HttpGet('https://github.com/alfin-efendy/ez-rbx-ui/releases/latest/download/ez-rbx-ui.lua'))()
 -- Import local modules
 local CoreModule = require('../module/core.lua')
 local PlayerModule = require('../module/player.lua')
